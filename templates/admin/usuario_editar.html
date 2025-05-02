@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Usuario - Consultorio Odontológico{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        {% if usuario.foto %}
+                        <img src="{{ usuario.foto.url }}" alt="{{ usuario.username }}" class="rounded-circle me-3" width="60" height="60">
+                        {% else %}
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-user text-secondary fa-2x"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h4 class="mb-1">{{ usuario.first_name }} {{ usuario.last_name }}</h4>
+                            <p class="text-light mb-0">
+                                {% if usuario.rol == 'paciente' %}
+                                <span class="badge bg-info">Paciente</span>
+                                {% elif usuario.rol == 'secretaria' %}
+                                <span class="badge bg-warning text-dark">Secretaría</span>
+                                {% elif usuario.rol == 'admin' %}
+                                <span class="badge bg-danger">Administrador</span>
+                                {% endif %}
+                                &bull; Usuario desde {{ usuario.date_joined|date:"d/m/Y" }}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{% url 'admin_usuarios' %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <h5 class="mb-3">Información Personal</h5>
+                                {% for field in perfil_form %}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ field.errors|join:", " }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <h5 class="mb-3">Rol y Estado</h5>
+                                {% for field in rol_form %}
+                                <div class="mb-3">
+                                    {% if field.field.widget.input_type == 'checkbox' %}
+                                    <div class="form-check">
+                                        {{ field }}
+                                        <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    </div>
+                                    {% else %}
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% endif %}
+                                    {% if field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ field.errors|join:", " }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="{{ form.username.id_for_label }}" class="form-label">Nombre de usuario</label>
+                                            {{ form.username }}
+                                            {% if form.username.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.username.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.rol.id_for_label }}" class="form-label">Rol del usuario</label>
+                                            {{ form.rol }}
+                                            {% if form.rol.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.rol.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light border-0">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Información personal</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="{{ form.first_name.id_for_label }}" class="form-label">Nombres</label>
+                                            {{ form.first_name }}
+                                            {% if form.first_name.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.first_name.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.last_name.id_for_label }}" class="form-label">Apellidos</label>
+                                            {{ form.last_name }}
+                                            {% if form.last_name.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.last_name.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.email.id_for_label }}" class="form-label">Correo electrónico</label>
+                                            {{ form.email }}
+                                            {% if form.email.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.email.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.DNI.id_for_label }}" class="form-label">DNI</label>
+                                            {{ form.DNI }}
+                                            {% if form.DNI.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.DNI.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.telefono.id_for_label }}" class="form-label">Teléfono</label>
+                                            {{ form.telefono }}
+                                            {% if form.telefono.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.telefono.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.obra_social.id_for_label }}" class="form-label">Obra Social</label>
+                                            {{ form.obra_social }}
+                                            {% if form.obra_social.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.obra_social.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light border-0">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Dirección</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="{{ form.calle.id_for_label }}" class="form-label">Calle</label>
+                                            {{ form.calle }}
+                                            {% if form.calle.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.calle.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.numero.id_for_label }}" class="form-label">Número</label>
+                                            {{ form.numero }}
+                                            {% if form.numero.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.numero.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.piso.id_for_label }}" class="form-label">Piso</label>
+                                            {{ form.piso }}
+                                            {% if form.piso.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.piso.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="{{ form.departamento.id_for_label }}" class="form-label">Departamento</label>
+                                            {{ form.departamento }}
+                                            {% if form.departamento.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.departamento.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light border-0">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Estado de la cuenta</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check form-switch">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Usuario activo</label>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.is_active.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Guardar cambios
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configurar Horarios - Consultorio Odontológico{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Configuración de Horarios</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Horarios por día de la semana -->
+                    <div class="mb-4">
+                        <h5>Horarios Regulares</h5>
+                        <p class="text-muted">Configure los horarios de atención para cada día de la semana</p>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Día</th>
+                                        <th>Hora Inicio</th>
+                                        <th>Hora Fin</th>
+                                        <th>Duración Turno</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="horarios-regulares">
+                                    {% for config in configuraciones %}
+                                    <tr data-id="{{ config.id }}">
+                                        <td>{{ config.get_dia_semana_display }}</td>
+                                        <td>{{ config.hora_inicio|time:"H:i" }}</td>
+                                        <td>{{ config.hora_fin|time:"H:i" }}</td>
+                                        <td>{{ config.duracion_turno }} min</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger eliminar-horario">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#modalHorario">
+                            <i class="fas fa-plus me-2"></i>Agregar Horario
+                        </button>
+                    </div>
+
+                    <!-- Excepciones -->
+                    <div class="mt-5">
+                        <h5>Excepciones</h5>
+                        <p class="text-muted">Configure días especiales, feriados o vacaciones</p>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Estado</th>
+                                        <th>Motivo</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="excepciones">
+                                    {% for excepcion in excepciones %}
+                                    <tr data-id="{{ excepcion.id }}">
+                                        <td>{{ excepcion.fecha|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <span class="badge {% if excepcion.disponible %}bg-success{% else %}bg-danger{% endif %}">
+                                                {{ excepcion.disponible|yesno:"Disponible,No Disponible" }}
+                                            </span>
+                                        </td>
+                                        <td>{{ excepcion.motivo }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger eliminar-excepcion">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#modalExcepcion">
+                            <i class="fas fa-plus me-2"></i>Agregar Excepción
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar/Editar Horario -->
+<div class="modal fade" id="modalHorario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configurar Horario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formHorario">
+                    <div class="mb-3">
+                        <label class="form-label">Día de la semana</label>
+                        <select class="form-select" name="dia_semana" required>
+                            <option value="0">Lunes</option>
+                            <option value="1">Martes</option>
+                            <option value="2">Miércoles</option>
+                            <option value="3">Jueves</option>
+                            <option value="4">Viernes</option>
+                            <option value="5">Sábado</option>
+                            <option value="6">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hora de inicio</label>
+                        <input type="time" class="form-control" name="hora_inicio" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hora de fin</label>
+                        <input type="time" class="form-control" name="hora_fin" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Duración del turno (minutos)</label>
+                        <input type="number" class="form-control" name="duracion_turno" value="30" min="15" max="120" step="15" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="guardarHorario">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar Excepción -->
+<div class="modal fade" id="modalExcepcion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar Excepción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formExcepcion">
+                    <div class="mb-3">
+                        <label class="form-label">Fecha</label>
+                        <input type="date" class="form-control" name="fecha" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="disponible" id="disponible">
+                            <label class="form-check-label" for="disponible">Día disponible</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo</label>
+                        <input type="text" class="form-control" name="motivo" placeholder="Ej: Feriado, Vacaciones">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="guardarExcepcion">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar Flatpickr para el selector de fecha
+    flatpickr('input[name="fecha"]', {
+        locale: 'es',
+        dateFormat: 'Y-m-d',
+        minDate: 'today'
+    });
+
+    // Guardar nuevo horario
+    document.getElementById('guardarHorario').addEventListener('click', function() {
+        const formData = new FormData(document.getElementById('formHorario'));
+        const data = Object.fromEntries(formData.entries());
+
+        fetch('/admin/horarios/configurar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error al guardar el horario: ' + data.message);
+            }
+        });
+    });
+
+    // Guardar nueva excepción
+    document.getElementById('guardarExcepcion').addEventListener('click', function() {
+        const formData = new FormData(document.getElementById('formExcepcion'));
+        const data = {
+            fecha: formData.get('fecha'),
+            disponible: formData.get('disponible') === 'on',
+            motivo: formData.get('motivo')
+        };
+
+        fetch('/admin/horarios/excepcion/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error al guardar la excepción: ' + data.message);
+            }
+        });
+    });
+
+    // Eliminar horario
+    document.querySelectorAll('.eliminar-horario').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('¿Está seguro de eliminar este horario?')) {
+                const horarioId = this.closest('tr').dataset.id;
+                fetch(`/admin/horarios/${horarioId}/eliminar/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Error al eliminar el horario: ' + data.message);
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

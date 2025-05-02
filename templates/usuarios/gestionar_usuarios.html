@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Usuarios - Consultorio Odontológico{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Gestión de Usuarios</h4>
+                <a href="{% url 'admin_usuario_crear' %}" class="btn btn-light">
+                    <i class="fas fa-user-plus me-2"></i> Nuevo Usuario
+                </a>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-4">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <select id="filtroRol" class="form-select">
+                                <option value="">Todos los roles</option>
+                                <option value="paciente">Pacientes</option>
+                                <option value="secretaria">Secretaría</option>
+                                <option value="admin">Administradores</option>
+                            </select>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="buscarUsuario" class="form-control" placeholder="Buscar por nombre, apellido o DNI...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Nombre completo</th>
+                                <th>Email</th>
+                                <th>DNI</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr data-rol="{{ usuario.rol }}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if usuario.foto %}
+                                        <img src="{{ usuario.foto.url }}" alt="{{ usuario.username }}" class="rounded-circle me-2" width="40" height="40">
+                                        {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user text-secondary"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-bold">{{ usuario.username }}</div>
+                                            <div class="text-muted small">ID: {{ usuario.id }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ usuario.first_name }} {{ usuario.last_name }}</td>
+                                <td>{{ usuario.email }}</td>
+                                <td>{{ usuario.DNI }}</td>
+                                <td>
+                                    {% if usuario.rol == 'paciente' %}
+                                    <span class="badge bg-info">Paciente</span>
+                                    {% elif usuario.rol == 'secretaria' %}
+                                    <span class="badge bg-warning text-dark">Secretaría</span>
+                                    {% elif usuario.rol == 'admin' %}
+                                    <span class="badge bg-danger">Administrador</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if usuario.is_active %}
+                                    <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'admin_usuario_editar' usuario.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit me-1"></i> Editar
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a href="{% url 'admin_usuario_editar' usuario.id %}" class="dropdown-item">
+                                                    <i class="fas fa-edit me-2"></i> Editar datos
+                                                </a>
+                                            </li>
+                                            {% if usuario.rol == 'paciente' %}
+                                            <li>
+                                                <a href="{% url 'historial_paciente_ver' usuario.id %}" class="dropdown-item">
+                                                    <i class="fas fa-notes-medical me-2"></i> Ver historial
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a href="{% url 'admin_usuario_eliminar' usuario.id %}" class="dropdown-item text-danger">
+                                                    <i class="fas fa-trash-alt me-2"></i> Eliminar
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Filtrado por rol
+        document.getElementById('filtroRol').addEventListener('change', function() {
+            const rolSeleccionado = this.value;
+            const filas = document.querySelectorAll('tbody tr');
+            
+            filas.forEach(fila => {
+                if (!rolSeleccionado || fila.dataset.rol === rolSeleccionado) {
+                    fila.style.display = '';
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+        });
+        
+        // Búsqueda de usuarios
+        document.getElementById('buscarUsuario').addEventListener('input', function() {
+            const textoBusqueda = this.value.toLowerCase();
+            const filas = document.querySelectorAll('tbody tr');
+            
+            filas.forEach(fila => {
+                const contenido = fila.textContent.toLowerCase();
+                if (contenido.includes(textoBusqueda)) {
+                    fila.style.display = '';
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

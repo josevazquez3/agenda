@@ -1,0 +1,76 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block result_list %}
+    {% if action_form and actions_on_top and cl.show_admin_actions %}
+        <div class="actions">
+            {% block actions %}
+                {% for field in action_form %}
+                    {% if field.label %}
+                        <label>{{ field.label }}</label>
+                    {% endif %}
+                    {{ field }}
+                {% endfor %}
+                <button type="submit" class="button" title="{% translate 'Run the selected action' %}">
+                    {% translate 'Go' %}
+                </button>
+                {% if actions_selection_counter %}
+                    <span class="action-counter">{{ selection_note }}</span>
+                {% endif %}
+            {% endblock %}
+        </div>
+    {% endif %}
+    {% block pagination %}
+        {% if cl.result_count %}
+            {% pagination cl %}
+        {% endif %}
+    {% endblock %}
+    {% if cl.formset and cl.result_count %}
+        {{ cl.formset.management_form }}
+    {% endif %}
+    {% block result_list_content %}
+        {% if cl.result_count %}
+            <div class="results">
+                <table id="result_list">
+                    <thead>
+                        <tr>
+                            {% for header in cl.result_headers %}
+                                <th scope="col" {{ header.class_attrib }}>
+                                    {% if header.sortable %}
+                                        {% if header.sort_priority > 0 %}
+                                            <div class="sortoptions">
+                                                <a class="sortremove" href="{{ header.url_remove }}" title="{% translate "Remove from sorting" %}"></a>
+                                                {% if num_sorted_fields > 1 %}
+                                                    <span class="sortpriority" title="{% translate "Sorting priority: %(priority_number)s" %}">{{ header.sort_priority }}</span>
+                                                {% endif %}
+                                                <a class="toggle {{ header.ascending|yesno:"ascending,descending" }}" href="{{ header.url_toggle }}" title="{% translate "Toggle sorting" %}"></a>
+                                            </div>
+                                        {% endif %}
+                                        <div class="text">
+                                            <a href="{{ header.url_primary }}" title="{% translate "Sort by" %} {{ header.text }}">{{ header.text|capfirst }}</a>
+                                        </div>
+                                    {% else %}
+                                        <div class="text">{{ header.text|capfirst }}</div>
+                                    {% endif %}
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in cl.result_list %}
+                            {% if result.form and result.form.non_field_errors %}
+                                <tr><td colspan="{{ cl.list_display|length }}">{{ result.form.non_field_errors }}</td></tr>
+                            {% endif %}
+                            <tr>{% for item in result %}{{ item }}{% endfor %}</tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endblock %}
+    {% if action_form and actions_on_bottom and cl.show_admin_actions %}
+        <div class="actions">
+            {% block actions_bottom %}{% endblock %}
+        </div>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{% static 'js/admin_dias.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Configurar Días Disponibles</h2>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Agregar Nuevo Día</h5>
+                    <form id="formAgregarDia" class="mt-3" method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="fecha" name="fecha" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="disponible" name="disponible" checked value="true">
+                            <label class="form-check-label" for="disponible">Disponible</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Días Configurados</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                    <th>Horarios</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaDiasBody">
+                                {% if dias %}
+                                    {% for dia in dias %}
+                                    <tr data-fecha="{{ dia.fecha|date:'Y-m-d' }}">
+                                        <td>{{ dia.fecha|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if dia.disponible %}
+                                            <span class="badge bg-success">Disponible</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">No Disponible</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-info btn-ver-horarios" data-fecha="{{ dia.fecha|date:'Y-m-d' }}">Ver Horarios</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr id="sinDatos">
+                                        <td colspan="3" class="text-center">No hay días configurados</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para configuración de horarios -->
+<div class="modal fade" id="horariosModal" tabindex="-1" aria-labelledby="horariosModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="horariosModalLabel">Configurar Horarios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="horariosModalBody">
+                <!-- Aquí se cargarán los horarios -->
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="guardarHorarios">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtener el formulario
+        const formAgregarDia = document.getElementById('formAgregarDia');
+        
+        // Función para actualizar la tabla de días
+        function actualizarTablaDias() {
+            fetch('/turnos/admin/dias-disponibles/')
+                .then(response => response.json())
+                .then(dias => {
+                    const tablaDiasBody = document.getElementById('tablaDiasBody');
+                    
+                    if (dias.length === 0) {
+                        tablaDiasBody.innerHTML = `
+                            <tr id="sinDatos">
+                                <td colspan="3" class="text-center">No hay días configurados</td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    // Ordenar días por fecha (más reciente primero)
+                    dias.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                    
+                    const filas = dias.map(dia => {
+                        const fecha = new Date(dia.fecha);
+                        const fechaFormateada = fecha.toLocaleDateString('es-ES');
+                        return `
+                            <tr data-fecha="${dia.fecha}">
+                                <td>${fechaFormateada}</td>
+                                <td>
+                                    <span class="badge bg-${dia.disponible ? 'success' : 'danger'}">
+                                        ${dia.disponible ? 'Disponible' : 'No Disponible'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-info btn-ver-horarios" data-fecha="${dia.fecha}">
+                                        Ver Horarios
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                    
+                    tablaDiasBody.innerHTML = filas;
+                    
+                    // Volver a agregar los event listeners a los botones
+                    document.querySelectorAll('.btn-ver-horarios').forEach(boton => {
+                        boton.addEventListener('click', function() {
+                            const fecha = this.getAttribute('data-fecha');
+                            verHorarios(fecha);
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al actualizar la tabla:', error);
+                });
+        }
+        
+        // Manejar envío del formulario
+        if (formAgregarDia) {
+            formAgregarDia.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                // Obtener el token CSRF
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                // Enviar datos al servidor
+                fetch('/turnos/admin/dias-disponibles/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            title: '¡Éxito!',
+                            text: 'Día configurado correctamente',
+                            icon: 'success',
+                            confirmButtonText: 'Ok'
+                        });
+                        
+                        // Limpiar el formulario
+                        formAgregarDia.reset();
+                        
+                        // Actualizar la tabla de días
+                        actualizarTablaDias();
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: data.message || 'Ha ocurrido un error',
+                            icon: 'error',
+                            confirmButtonText: 'Ok'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Ha ocurrido un error en la comunicación con el servidor',
+                        icon: 'error',
+                        confirmButtonText: 'Ok'
+                    });
+                });
+            });
+        }
+        
+        // Manejar click en botones de ver horarios
+        const botonesVerHorarios = document.querySelectorAll('.btn-ver-horarios');
+        botonesVerHorarios.forEach(boton => {
+            boton.addEventListener('click', function() {
+                const fecha = this.getAttribute('data-fecha');
+                verHorarios(fecha);
+            });
+        });
+    });
+    
+    // Función para ver horarios
+    function verHorarios(fecha) {
+        // Obtener el modal
+        const modal = new bootstrap.Modal(document.getElementById('horariosModal'));
+        const modalBody = document.getElementById('horariosModalBody');
+        
+        // Actualizar título del modal
+        document.getElementById('horariosModalLabel').textContent = `Configurar Horarios - ${formatearFecha(fecha)}`;
+        
+        // Mostrar spinner mientras se cargan los datos
+        modalBody.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        `;
+        
+        // Mostrar el modal
+        modal.show();
+        
+        // Cargar los horarios
+        fetch(`/admin/dias/horarios/?fecha=${fecha}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Generar HTML para los horarios
+                    let horariosHTML = '<div class="row">';
+                    
+                    data.horarios.forEach(horario => {
+                        horariosHTML += `
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input horario-check" type="checkbox" value="${horario.hora}" 
+                                           id="horario_${horario.hora.replace(':', '_')}" 
+                                           data-hora="${horario.hora}" ${horario.disponible ? 'checked' : ''}>
+                                    <label class="form-check-label" for="horario_${horario.hora.replace(':', '_')}">
+                                        ${horario.hora}
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    horariosHTML += '</div>';
+                    modalBody.innerHTML = horariosHTML;
+                    
+                    // Configurar el botón de guardar
+                    const guardarBtn = document.getElementById('guardarHorarios');
+                    guardarBtn.setAttribute('data-fecha', fecha);
+                    guardarBtn.addEventListener('click', guardarCambiosHorarios);
+                    
+                } else {
+                    modalBody.innerHTML = `<div class="alert alert-danger">${data.message || 'Error al cargar horarios'}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                modalBody.innerHTML = '<div class="alert alert-danger">Error al comunicarse con el servidor</div>';
+            });
+    }
+    
+    // Función para guardar cambios en horarios
+    function guardarCambiosHorarios() {
+        const fecha = this.getAttribute('data-fecha');
+        const horariosChecks = document.querySelectorAll('.horario-check');
+        const horarios = [];
+        
+        horariosChecks.forEach(check => {
+            horarios.push({
+                hora: check.getAttribute('data-hora'),
+                disponible: check.checked
+            });
+        });
+        
+        // Obtener el token CSRF
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Enviar datos al servidor
+        fetch('/admin/dias/horarios/guardar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                fecha: fecha,
+                horarios: horarios
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Cerrar el modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('horariosModal'));
+                modal.hide();
+                
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Horarios guardados correctamente',
+                    icon: 'success',
+                    confirmButtonText: 'Ok'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Ha ocurrido un error',
+                    icon: 'error',
+                    confirmButtonText: 'Ok'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Ha ocurrido un error en la comunicación con el servidor',
+                icon: 'error',
+                confirmButtonText: 'Ok'
+            });
+        });
+    }
+    
+    // Función para formatear fecha
+    function formatearFecha(fechaStr) {
+        const fecha = new Date(fechaStr);
+        return fecha.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+</script>
+{% endblock %}

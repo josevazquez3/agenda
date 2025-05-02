@@ -1,0 +1,33 @@
+<!-- Gestión de Disponibilidad -->
+<li class="sidebar-item">
+    <a href="#" class="sidebar-link has-sub">
+        <i class="bi bi-calendar-check me-2"></i>
+        <span>Disponibilidad</span>
+    </a>
+    <ul class="sidebar-submenu">
+        <li class="sidebar-item">
+            <a href="{% url 'admin_calendario' %}" class="sidebar-link">
+                <i class="bi bi-calendar-plus me-2"></i>
+                <span>Calendario</span>
+            </a>
+        </li>
+        <li class="sidebar-item">
+            <a href="{% url 'admin_configurar_dias' %}" class="sidebar-link">
+                <i class="bi bi-calendar-date me-2"></i>
+                <span>Configurar Días</span>
+            </a>
+        </li>
+        <li class="sidebar-item">
+            <a href="{% url 'admin_gestion_disponibilidad' %}" class="sidebar-link">
+                <i class="bi bi-calendar-week me-2"></i>
+                <span>Ver Todos los Días</span>
+            </a>
+        </li>
+        <li class="sidebar-item">
+            <a href="{% url 'admin_configurar_horarios' %}" class="sidebar-link">
+                <i class="bi bi-clock me-2"></i>
+                <span>Configurar Horarios</span>
+            </a>
+        </li>
+    </ul>
+</li> 

@@ -1,0 +1,55 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} | Consultorio Odontológico{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="/admin/" class="d-flex align-items-center text-decoration-none">
+        <svg class="me-2" width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 5C12.268 5 6 11.268 6 19C6 26.732 12.268 33 20 33C27.732 33 34 26.732 34 19C34 11.268 27.732 5 20 5ZM20 7C26.617 7 32 12.383 32 19C32 25.617 26.617 31 20 31C13.383 31 8 25.617 8 19C8 12.383 13.383 7 20 7Z" fill="#417690"/>
+            <path d="M20 10C18.895 10 18 10.895 18 12V18H12C10.895 18 10 18.895 10 20C10 21.105 10.895 22 12 22H18V28C18 29.105 18.895 30 20 30C21.105 30 22 29.105 22 28V22H28C29.105 22 30 21.105 30 20C30 18.895 29.105 18 28 18H22V12C22 10.895 21.105 10 20 10Z" fill="#417690"/>
+        </svg>
+        <span>Consultorio Odontológico</span>
+    </a>
+</h1>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    :root {
+        --primary: #417690;
+        --secondary: #79aec8;
+        --accent: #f5dd5d;
+        --primary-fg: #fff;
+    }
+    #header {
+        background: var(--primary);
+        color: var(--primary-fg);
+    }
+    #branding h1 {
+        color: var(--primary-fg);
+    }
+    .module h2, .module caption, .inline-group h2 {
+        background: var(--primary);
+    }
+    div.breadcrumbs {
+        background: var(--secondary);
+    }
+    .selector-chosen h2 {
+        background: var(--secondary) !important;
+    }
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: var(--primary);
+    }
+    .button:active, input[type=submit]:active, input[type=button]:active,
+    .button:focus, input[type=submit]:focus, input[type=button]:focus,
+    .button:hover, input[type=submit]:hover, input[type=button]:hover {
+        background: var(--secondary);
+    }
+    .object-tools a:focus, .object-tools a:hover {
+        background-color: var(--secondary);
+    }
+</style>
+{% endblock %}

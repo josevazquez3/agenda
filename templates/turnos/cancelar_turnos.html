@@ -1,0 +1,172 @@
+/**
+ * Calendario de turnos para Consultorio Odontológico
+ * Este archivo implementa la funcionalidad para seleccionar fechas y horarios
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Referencia a los elementos DOM
+    const calendar = document.getElementById('calendar');
+    const fechaSeleccionada = document.getElementById('fecha-seleccionada');
+    const mensajeHorarios = document.getElementById('mensaje-horarios');
+    const listaHorarios = document.getElementById('lista-horarios');
+    const confirmarContainer = document.getElementById('confirmar-container');
+    
+    // Inicializar flatpickr (calendario)
+    const fp = flatpickr(calendar, {
+        locale: 'es',
+        inline: true,
+        minDate: 'today',
+        dateFormat: 'Y-m-d',
+        
+        // Cargar días disponibles desde el servidor al iniciar
+        onReady: function() {
+            cargarDiasDisponibles();
+        },
+        
+        // Cuando se selecciona una fecha
+        onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length > 0) {
+                // Actualizar texto de fecha seleccionada
+                const date = selectedDates[0];
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                fechaSeleccionada.textContent = date.toLocaleDateString('es-ES', options)
+                    .charAt(0).toUpperCase() + date.toLocaleDateString('es-ES', options).slice(1);
+                
+                // Cargar horarios para la fecha seleccionada
+                cargarHorarios(dateStr);
+            }
+        }
+    });
+    
+    /**
+     * Carga los días disponibles desde el servidor
+     */
+    function cargarDiasDisponibles() {
+        fetch('/turnos/dias_disponibles/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Configurar días disponibles
+                if (data.dias_disponibles && data.dias_disponibles.length > 0) {
+                    fp.set('enable', data.dias_disponibles);
+                    
+                    // Cambiar el color de los días disponibles
+                    setTimeout(() => {
+                        data.dias_disponibles.forEach(fecha => {
+                            const elements = document.querySelectorAll(`.flatpickr-day[aria-label="${fecha}"]`);
+                            elements.forEach(el => {
+                                el.classList.add('available-day');
+                                el.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                                el.style.borderColor = '#28a745';
+                            });
+                        });
+                    }, 100);
+                } else {
+                    mensajeHorarios.innerHTML = `
+                        <i class="fas fa-calendar-times fa-2x mb-3 d-block text-muted"></i>
+                        <p class="text-muted">No hay fechas disponibles para turnos.</p>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mensajeHorarios.innerHTML = `
+                    <i class="fas fa-exclamation-circle fa-2x mb-3 d-block text-danger"></i>
+                    <p>Ocurrió un error al cargar las fechas disponibles.</p>
+                `;
+            });
+    }
+    
+    /**
+     * Carga los horarios disponibles para una fecha específica
+     */
+    function cargarHorarios(fecha) {
+        // Resetear elementos de la interfaz
+        mensajeHorarios.classList.remove('d-none');
+        mensajeHorarios.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando horarios disponibles...</p></div>';
+        listaHorarios.classList.add('d-none');
+        confirmarContainer.classList.add('d-none');
+        
+        // Solicitar horarios al servidor
+        fetch(`/turnos/horarios/${fecha}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.horarios || data.horarios.length === 0) {
+                    mensajeHorarios.innerHTML = `
+                        <i class="fas fa-calendar-times fa-2x mb-3 d-block text-muted"></i>
+                        <p class="text-muted">No hay horarios disponibles para esta fecha.</p>
+                    `;
+                    return;
+                }
+                
+                // Generar HTML para los horarios
+                let horariosHTML = '<div class="row g-2">';
+                data.horarios.forEach(horario => {
+                    horariosHTML += `
+                        <div class="col-md-4 col-6">
+                            <button type="button" class="btn btn-outline-primary w-100 horario-btn" 
+                                data-id="${horario.id}" 
+                                data-hora="${horario.hora}">
+                                <i class="far fa-clock me-2"></i>${horario.hora}
+                            </button>
+                        </div>
+                    `;
+                });
+                horariosHTML += '</div>';
+                
+                // Actualizar interfaz
+                mensajeHorarios.classList.add('d-none');
+                listaHorarios.innerHTML = horariosHTML;
+                listaHorarios.classList.remove('d-none');
+                
+                // Agregar eventos a los botones de horario
+                document.querySelectorAll('.horario-btn').forEach(btn => {
+                    btn.addEventListener('click', seleccionarHorario);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mensajeHorarios.innerHTML = `
+                    <i class="fas fa-exclamation-circle fa-2x mb-3 d-block text-danger"></i>
+                    <p>Ocurrió un error al cargar los horarios. <a href="javascript:void(0)" onclick="cargarHorarios('${fecha}')">Intentar nuevamente</a>.</p>
+                `;
+            });
+    }
+    
+    /**
+     * Maneja la selección de un horario
+     */
+    function seleccionarHorario(event) {
+        // Obtener datos del horario seleccionado
+        const btn = event.currentTarget;
+        const horarioId = btn.dataset.id;
+        const horarioHora = btn.dataset.hora;
+        
+        // Limpiar selección previa
+        document.querySelectorAll('.horario-btn').forEach(el => {
+            el.classList.remove('btn-primary');
+            el.classList.add('btn-outline-primary');
+        });
+        
+        // Marcar como seleccionado
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-primary');
+        
+        // Actualizar formulario y mostrar bloque de confirmación
+        document.getElementById('horario_id').value = horarioId;
+        document.getElementById('resumen-turno').innerHTML = `
+            <p class="mb-1"><strong>Fecha:</strong> ${fechaSeleccionada.textContent}</p>
+            <p class="mb-0"><strong>Hora:</strong> ${horarioHora}</p>
+        `;
+        confirmarContainer.classList.remove('d-none');
+    }
+});

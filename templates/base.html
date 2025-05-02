@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Consultorio Odontológico{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- CSS personalizado -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="shadow-sm">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center" href="{% url 'inicio' %}">
+                    <svg class="me-2" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 5C12.268 5 6 11.268 6 19C6 26.732 12.268 33 20 33C27.732 33 34 26.732 34 19C34 11.268 27.732 5 20 5ZM20 7C26.617 7 32 12.383 32 19C32 25.617 26.617 31 20 31C13.383 31 8 25.617 8 19C8 12.383 13.383 7 20 7Z" fill="#4F94CD"/>
+                        <path d="M20 10C18.895 10 18 10.895 18 12V18H12C10.895 18 10 18.895 10 20C10 21.105 10.895 22 12 22H18V28C18 29.105 18.895 30 20 30C21.105 30 22 29.105 22 28V22H28C29.105 22 30 21.105 30 20C30 18.895 29.105 18 28 18H22V12C22 10.895 21.105 10 20 10Z" fill="#4F94CD"/>
+                    </svg>
+                    <span class="fw-bold text-primary">Consultorio Odontológico</span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'inicio' %}">Inicio</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'solicitar_turno' %}">Turnos</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'contacto' %}">Contacto</a>
+                        </li>
+                        {% if user.is_authenticated and user.rol == 'admin' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                                Administración
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'admin_usuarios' %}">Usuarios</a></li>
+                                <!-- Opción de configurar días eliminada -->
+                                <li><a class="dropdown-item" href="{% url 'admin_configurar_horarios' %}">Configurar Horarios</a></li>
+                                <li><a class="dropdown-item" href="{% url 'admin_listado_turnos' %}">Listado de Turnos</a></li>
+                                <li><a class="dropdown-item" href="{% url 'historial_paciente_lista' %}">Historial Pacientes</a></li>
+                            </ul>
+                        </li>
+                        {% elif user.is_authenticated and user.rol == 'secretaria' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'historial_paciente_lista' %}">Historial Pacientes</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div class="d-flex align-items-center">
+                        {% if user.is_authenticated %}
+                        <div class="dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                                {% if user.foto %}
+                                <img src="{{ user.foto.url }}" alt="{{ user.username }}" class="rounded-circle me-2" width="32" height="32">
+                                {% else %}
+                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                    <i class="fas fa-user text-secondary"></i>
+                                </div>
+                                {% endif %}
+                                <span>{{ user.first_name }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'perfil' %}">Mi Perfil</a></li>
+                                <li><a class="dropdown-item" href="{% url 'mis_turnos' %}">Mis Turnos</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Cerrar Sesión</a></li>
+                            </ul>
+                        </div>
+                        {% else %}
+                        <a href="{% url 'login' %}" class="btn btn-outline-primary me-2">Ingresar</a>
+                        <a href="{% url 'registro' %}" class="btn btn-primary">Registrarse</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="py-4">
+        <div class="container">
+            {% if messages %}
+            <div class="row">
+                <div class="col-12">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="py-4 bg-light mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5 class="mb-3 text-primary">Consultorio Odontológico</h5>
+                    <p>Cuidamos tu sonrisa con profesionalismo y dedicación.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="mb-3 text-primary">Horarios de Atención</h5>
+                    <p>Lunes a Viernes: 9:00 - 18:00<br>Sábados: 9:00 - 13:00</p>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="mb-3 text-primary">Contacto</h5>
+                    <p>
+                        <i class="fas fa-map-marker-alt me-2"></i> Av. Principal 123<br>
+                        <i class="fas fa-phone me-2"></i> (123) 456-7890<br>
+                        <i class="fas fa-envelope me-2"></i> info@consultorio.com
+                    </p>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p class="mb-0">&copy; {% now "Y" %} Consultorio Odontológico. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JS personalizado -->
+    <script src="/static/js/main.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

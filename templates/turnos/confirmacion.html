@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Turno Confirmado - Consultorio Odontológico{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-success text-white py-3">
+                <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i> ¡Turno Confirmado!</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <div class="display-1 text-success mb-3">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h3 class="text-success mb-3">Tu turno ha sido reservado exitosamente</h3>
+                    <p class="lead">Gracias por confiar en nosotros para el cuidado de tu salud dental.</p>
+                </div>
+                
+                <div class="card bg-light border-0 mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-3">Detalles del turno:</h5>
+                        
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong><i class="fas fa-user me-2 text-primary"></i> Paciente:</strong></p>
+                                <p class="ms-4">{{ turno.paciente.first_name }} {{ turno.paciente.last_name }}</p>
+                                
+                                <p class="mb-2"><strong><i class="fas fa-id-card me-2 text-primary"></i> DNI:</strong></p>
+                                <p class="ms-4">{{ turno.paciente.DNI }}</p>
+                                
+                                <p class="mb-2"><strong><i class="fas fa-hospital-user me-2 text-primary"></i> Obra Social:</strong></p>
+                                <p class="ms-4">{{ turno.paciente.obra_social|default:"No especificada" }}</p>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong><i class="fas fa-calendar-alt me-2 text-primary"></i> Fecha:</strong></p>
+                                <p class="ms-4">{{ turno.dia.fecha|date:"l d 'de' F 'de' Y" }}</p>
+                                
+                                <p class="mb-2"><strong><i class="fas fa-clock me-2 text-primary"></i> Hora:</strong></p>
+                                <p class="ms-4">{{ turno.horario.hora_inicio|time:"H:i" }} hs</p>
+                                
+                                <p class="mb-2"><strong><i class="fas fa-info-circle me-2 text-primary"></i> Estado:</strong></p>
+                                <p class="ms-4"><span class="badge bg-success">{{ turno.get_estado_display }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h5 class="alert-heading mb-2"><i class="fas fa-exclamation-circle me-2"></i> Recuerda:</h5>
+                    <ul class="mb-0">
+                        <li>Llega 15 minutos antes de tu cita.</li>
+                        <li>Trae tu DNI y credencial de obra social.</li>
+                        <li>Si no puedes asistir, por favor cancela tu turno con al menos 24 horas de anticipación.</li>
+                        <li>Recibirás un recordatorio por email 24 horas antes de tu cita.</li>
+                    </ul>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{% url 'mis_turnos' %}" class="btn btn-primary">
+                        <i class="fas fa-calendar me-2"></i> Ver Mis Turnos
+                    </a>
+                    <a href="{% url 'inicio' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-home me-2"></i> Volver al Inicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

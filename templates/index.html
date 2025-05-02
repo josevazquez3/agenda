@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Consultorio Odontológico - Inicio{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="row align-items-center">
+        <div class="col-lg-6">
+            <h1 class="display-5 fw-bold text-primary mb-4">Cuidamos tu sonrisa con profesionalismo</h1>
+            <p class="lead mb-4">Nuestro consultorio odontológico ofrece atención de calidad con profesionales altamente calificados y tecnología de vanguardia.</p>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                <a href="{% url 'solicitar_turno' %}" class="btn btn-primary btn-lg px-4 me-md-2">Solicitar Turno</a>
+                <a href="{% url 'contacto' %}" class="btn btn-outline-secondary btn-lg px-4">Contacto</a>
+                <a href="{% url 'admin_configurar_horarios' %}">Configurar Horarios</a>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <img src="https://source.unsplash.com/800x600/?dental,dentist" class="img-fluid rounded shadow" alt="Consultorio Odontológico">
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold text-primary">Nuestros Servicios</h2>
+        <p class="lead">Ofrecemos una amplia gama de servicios odontológicos para toda la familia</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-flex mb-3">
+                        <i class="fas fa-tooth text-primary fa-2x"></i>
+                    </div>
+                    <h3 class="card-title h5 mb-3">Odontología General</h3>
+                    <p class="card-text text-muted">Diagnóstico, prevención y tratamiento de enfermedades que afectan los dientes y encías.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-flex mb-3">
+                        <i class="fas fa-smile text-primary fa-2x"></i>
+                    </div>
+                    <h3 class="card-title h5 mb-3">Estética Dental</h3>
+                    <p class="card-text text-muted">Blanqueamiento, carillas, diseño de sonrisa y otros tratamientos para mejorar la apariencia de tus dientes.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-flex mb-3">
+                        <i class="fas fa-x-ray text-primary fa-2x"></i>
+                    </div>
+                    <h3 class="card-title h5 mb-3">Radiografías Digitales</h3>
+                    <p class="card-text text-muted">Tecnología de vanguardia para diagnósticos precisos con menor radiación.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light rounded">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold text-primary">Nuestra Galería</h2>
+            <p class="lead">Conoce nuestras instalaciones modernas y confortables</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <img src="https://source.unsplash.com/400x300/?dental,clinic" class="img-fluid rounded shadow" alt="Instalaciones">
+            </div>
+            <div class="col-md-4">
+                <img src="https://source.unsplash.com/400x300/?dentist,office" class="img-fluid rounded shadow" alt="Instalaciones">
+            </div>
+            <div class="col-md-4">
+                <img src="https://source.unsplash.com/400x300/?dental,equipment" class="img-fluid rounded shadow" alt="Instalaciones">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 text-center">
+    <div class="container">
+        <div class="p-5 rounded shadow-lg" style="background-color: #4F94CD; color: white;">
+            <h2 class="fw-bold mb-4">¿Necesitas un turno?</h2>
+            <p class="lead mb-4">Agenda tu cita de manera rápida y sencilla a través de nuestra plataforma online.</p>
+            <a href="{% url 'solicitar_turno' %}" class="btn btn-light btn-lg fw-bold px-5">Solicitar Turno</a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+

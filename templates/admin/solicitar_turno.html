@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Solicitar Turno para Paciente</h1>
+    
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5>Datos del Turno</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="paciente" class="form-label">Paciente</label>
+                    <select class="form-select" id="paciente" name="paciente" required>
+                        <option value="">Seleccione un paciente</option>
+                        {% for paciente in pacientes %}
+                        <option value="{{ paciente.id }}">{{ paciente.get_full_name }} ({{ paciente.email }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="fecha" class="form-label">Fecha</label>
+                    <select class="form-select" id="fecha" name="fecha" required>
+                        <option value="">Seleccione una fecha</option>
+                        {% for dia in dias_disponibles %}
+                        <option value="{{ dia.fecha|date:'Y-m-d' }}">{{ dia.fecha|date:"d/m/Y" }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="horario" class="form-label">Horario</label>
+                    <select class="form-select" id="horario" name="horario" required disabled>
+                        <option value="">Primero seleccione una fecha</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="motivo" class="form-label">Motivo de la consulta</label>
+                    <textarea class="form-control" id="motivo" name="motivo" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Crear Turno</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fechaSelect = document.getElementById('fecha');
+        const horarioSelect = document.getElementById('horario');
+        
+        // Cuando cambia la fecha, cargar los horarios disponibles
+        fechaSelect.addEventListener('change', function() {
+            const fecha = this.value;
+            
+            if (fecha) {
+                // Habilitar el select de horarios
+                horarioSelect.disabled = false;
+                
+                // Limpiar opciones anteriores
+                horarioSelect.innerHTML = '<option value="">Cargando horarios...</option>';
+                
+                // Cargar los horarios disponibles para esta fecha
+                fetch(`/horarios-disponibles/${fecha}/`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error en la respuesta del servidor');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        horarioSelect.innerHTML = '';
+                        
+                        if (data.horarios && data.horarios.length > 0) {
+                            // Agregar opción por defecto
+                            const defaultOption = document.createElement('option');
+                            defaultOption.value = '';
+                            defaultOption.textContent = 'Seleccione un horario';
+                            horarioSelect.appendChild(defaultOption);
+                            
+                            // Agregar los horarios disponibles
+                            data.horarios.forEach(horario => {
+                                const option = document.createElement('option');
+                                option.value = horario.id;
+                                option.textContent = horario.hora_inicio;
+                                horarioSelect.appendChild(option);
+                            });
+                        } else {
+                            // No hay horarios disponibles
+                            const option = document.createElement('option');
+                            option.value = '';
+                            option.textContent = 'No hay horarios disponibles para esta fecha';
+                            horarioSelect.appendChild(option);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        horarioSelect.innerHTML = '<option value="">Error al cargar horarios</option>';
+                    });
+            } else {
+                // Deshabilitar el select de horarios
+                horarioSelect.disabled = true;
+                horarioSelect.innerHTML = '<option value="">Primero seleccione una fecha</option>';
+            }
+        });
+    });
+</script>
+{% endblock %}

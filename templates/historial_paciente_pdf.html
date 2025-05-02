@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial Clínico - {{ paciente.first_name }} {{ paciente.last_name }}</title>
+    <style>
+        @page {
+            margin: 2.5cm;
+            @top-right {
+                content: "Página " counter(page);
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2em;
+        }
+        .header h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 0.5em;
+        }
+        .patient-info {
+            margin-bottom: 2em;
+            padding: 1em;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .patient-info h2 {
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 1em;
+        }
+        .info-row {
+            margin-bottom: 0.5em;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .appointments {
+            margin-top: 2em;
+        }
+        .appointments h2 {
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 1em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Historial Clínico</h1>
+        <p>Consultorio Odontológico</p>
+    </div>
+
+    <div class="patient-info">
+        <h2>Información del Paciente</h2>
+        <div class="info-row">
+            <span class="info-label">Nombre:</span>
+            {{ paciente.first_name }} {{ paciente.last_name }}
+        </div>
+        <div class="info-row">
+            <span class="info-label">DNI:</span>
+            {{ paciente.DNI }}
+        </div>
+        <div class="info-row">
+            <span class="info-label">Teléfono:</span>
+            {{ paciente.telefono }}
+        </div>
+        <div class="info-row">
+            <span class="info-label">Email:</span>
+            {{ paciente.email }}
+        </div>
+        <div class="info-row">
+            <span class="info-label">Dirección:</span>
+            {{ paciente.calle }} {{ paciente.numero }}{% if paciente.piso %}, Piso {{ paciente.piso }}{% endif %}{% if paciente.departamento %}, Depto {{ paciente.departamento }}{% endif %}
+        </div>
+        <div class="info-row">
+            <span class="info-label">Obra Social:</span>
+            {{ paciente.obra_social|default:"Sin obra social registrada" }}
+        </div>
+        <div class="info-row">
+            <span class="info-label">Fecha de Alta:</span>
+            {{ paciente.date_joined|date:"d/m/Y" }}
+        </div>
+    </div>
+
+    <div class="appointments">
+        <h2>Historial de Turnos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for turno in paciente.turno_set.all %}
+                <tr>
+                    <td>{{ turno.dia.fecha|date:"d/m/Y" }}</td>
+                    <td>{{ turno.horario.hora_inicio|time:"H:i" }}</td>
+                    <td>{{ turno.get_estado_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

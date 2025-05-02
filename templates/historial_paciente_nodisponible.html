@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Función no disponible - Consultorio Odontológico{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-warning text-dark py-3">
+                <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i> Función no disponible</h4>
+            </div>
+            <div class="card-body p-4 text-center">
+                <div class="display-1 text-warning mb-4">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <h3 class="mb-3">Exportación a PDF no disponible</h3>
+                <p class="lead mb-4">{{ mensaje }}</p>
+                
+                <div class="alert alert-info">
+                    <p>Para habilitar esta función, sigue las instrucciones de instalación:</p>
+                    <p><a href="https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation" target="_blank">Guía de instalación de WeasyPrint</a></p>
+                </div>
+                
+                <div class="mt-4">
+                    <a href="{% url 'historial_paciente_ver' paciente.id %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i> Volver al historial del paciente
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

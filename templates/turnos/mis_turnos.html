@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Mis Turnos - Consultorio Odontológico{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Mis Turnos</h4>
+                <a href="{% url 'solicitar_turno' %}" class="btn btn-light">
+                    <i class="fas fa-plus-circle me-2"></i> Nuevo Turno
+                </a>
+            </div>
+            <div class="card-body p-4">
+                {% if turnos %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for turno in turnos %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="calendar-icon text-primary me-3">
+                                            <i class="fas fa-calendar-day fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ turno.dia.fecha|date:"d/m/Y" }}</div>
+                                            <div class="text-muted small">{{ turno.dia.fecha|date:"l" }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="clock-icon text-primary me-3">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <span>{{ turno.horario.hora_inicio|time:"H:i" }} hs</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if turno.estado == 'pendiente' %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% elif turno.estado == 'confirmado' %}
+                                    <span class="badge bg-success">Confirmado</span>
+                                    {% elif turno.estado == 'cancelado' %}
+                                    <span class="badge bg-danger">Cancelado</span>
+                                    {% elif turno.estado == 'completado' %}
+                                    <span class="badge bg-info">Completado</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#turnoModal{{ turno.id }}">
+                                        <i class="fas fa-eye me-1"></i> Ver detalles
+                                    </button>
+                                    {% if turno.estado != 'cancelado' and turno.estado != 'completado' %}
+                                    <a href="{% url 'cancelar_turno' turno.id %}" class="btn btn-sm btn-outline-danger ms-1">
+                                        <i class="fas fa-times-circle me-1"></i> Cancelar
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            
+                            <!-- Modal Detalles del Turno -->
+                            <div class="modal fade" id="turnoModal{{ turno.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title">Detalles del Turno</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row mb-3">
+                                                <div class="col-12 text-center mb-3">
+                                                    <div class="display-4 text-primary">
+                                                        <i class="fas fa-calendar-check"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <p class="mb-1 text-muted">Paciente:</p>
+                                                    <p class="fw-bold">{{ turno.paciente.first_name }} {{ turno.paciente.last_name }}</p>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <p class="mb-1 text-muted">DNI:</p>
+                                                    <p class="fw-bold">{{ turno.paciente.DNI }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-sm-6">
+                                                    <p class="mb-1 text-muted">Fecha:</p>
+                                                    <p class="fw-bold">{{ turno.dia.fecha|date:"d/m/Y" }} ({{ turno.dia.fecha|date:"l" }})</p>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <p class="mb-1 text-muted">Hora:</p>
+                                                    <p class="fw-bold">{{ turno.horario.hora_inicio|time:"H:i" }} hs</p>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-sm-6">
+                                                    <p class="mb-1 text-muted">Estado:</p>
+                                                    <p class="fw-bold">
+                                                        {% if turno.estado == 'pendiente' %}
+                                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                                        {% elif turno.estado == 'confirmado' %}
+                                                        <span class="badge bg-success">Confirmado</span>
+                                                        {% elif turno.estado == 'cancelado' %}
+                                                        <span class="badge bg-danger">Cancelado</span>
+                                                        {% elif turno.estado == 'completado' %}
+                                                        <span class="badge bg-info">Completado</span>
+                                                        {% endif %}
+                                                    </p>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <p class="mb-1 text-muted">Fecha de solicitud:</p>
+                                                    <p class="fw-bold">{{ turno.fecha_solicitud|date:"d/m/Y H:i" }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="display-4 text-muted mb-4">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No tienes turnos registrados</h4>
+                    <p class="lead mb-4">¡Agenda tu primera consulta ahora!</p>
+                    <a href="{% url 'solicitar_turno' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus-circle me-2"></i> Solicitar Turno
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

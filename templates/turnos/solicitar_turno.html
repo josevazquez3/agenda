@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Solicitar Turno - Consultorio Odontológico{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .horario-btn {
+        transition: all 0.3s ease;
+    }
+    .horario-btn:hover {
+        transform: translateY(-2px);
+    }
+    #horarios-container {
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="mb-0">Solicitar Turno</h4>
+            </div>
+            <div class="card-body p-4">
+                {% if not user.is_authenticated %}
+                <div class="alert alert-info">
+                    Necesitas <a href="{% url 'login' %}">iniciar sesión</a> o <a href="{% url 'registro' %}">registrarte</a> para solicitar un turno.
+                </div>
+                {% else %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <h5 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-primary me-2"></i> Selecciona tu turno</h5>
+                                <div id="calendar"></div>
+                                <div class="mt-4" id="horarios-container">
+                                    <h6 class="mb-3" id="fecha-seleccionada">Selecciona una fecha</h6>
+                                    <div id="mensaje-horarios" class="text-center py-3">
+                                        <i class="fas fa-calendar-day fa-2x mb-3 d-block text-muted"></i>
+                                        <p class="text-muted">Selecciona una fecha en el calendario para ver los horarios disponibles.</p>
+                                    </div>
+                                    <div id="lista-horarios" class="d-none"></div>
+                                </div>
+                                <div class="mt-4 d-none" id="confirmar-container">
+                                    <div class="alert alert-success">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-calendar-check me-2"></i>
+                                            <strong>Turno seleccionado:</strong>
+                                        </div>
+                                        <div id="resumen-turno" class="mb-2"></div>
+                                        <form method="post" action="{% url 'confirmar_turno' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="horario_id" id="horario_id">
+                                            <button type="submit" class="btn btn-success w-100">
+                                                <i class="fas fa-check-circle me-2"></i> Confirmar Turno
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body p-4">
+                                <h5 class="fw-bold mb-3"><i class="fas fa-user-check text-primary me-2"></i> Tus datos</h5>
+                                <dl class="row">
+                                    <dt class="col-sm-4">Nombre:</dt>
+                                    <dd class="col-sm-8">{{ user.first_name }} {{ user.last_name }}</dd>
+                                    
+                                    <dt class="col-sm-4">DNI:</dt>
+                                    <dd class="col-sm-8">{{ user.DNI }}</dd>
+                                    
+                                    <dt class="col-sm-4">Teléfono:</dt>
+                                    <dd class="col-sm-8">{{ user.telefono }}</dd>
+                                    
+                                    <dt class="col-sm-4">Email:</dt>
+                                    <dd class="col-sm-8">{{ user.email }}</dd>
+                                    
+                                    <dt class="col-sm-4">Obra Social:</dt>
+                                    <dd class="col-sm-8">{{ user.obra_social|default:"No especificada" }}</dd>
+                                </dl>
+                                <a href="{% url 'perfil' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-edit me-1"></i> Actualizar mis datos
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mt-4 mt-md-0">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body p-4">
+                                <h5 class="fw-bold mb-3"><i class="fas fa-info-circle text-primary me-2"></i> Información importante</h5>
+                                <ul class="mb-0">
+                                    <li class="mb-2">Asista con 15 minutos de anticipación.</li>
+                                    <li class="mb-2">Traiga su DNI y credencial de obra social si corresponde.</li>
+                                    <li class="mb-2">Si no puede asistir, cancele su turno con al menos 24 horas de anticipación.</li>
+                                    <li class="mb-2">En caso de síntomas de COVID-19, reprograme su cita.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script src="{% static 'js/calendario_turnos.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,237 @@
+/* ===========================================================
+   Variables y configuración general
+   =========================================================== */
+   :root {
+    --primary-color: #4F94CD;       /* Azul principal */
+    --primary-light: #A8D1F0;       /* Azul claro */
+    --primary-dark: #3A7DB0;        /* Azul oscuro */
+    --secondary-color: #6c757d;     /* Gris secundario */
+    --light-gray: #f8f9fa;          /* Gris claro */
+    --medium-gray: #e9ecef;         /* Gris medio */
+    --success-color: #28a745;       /* Verde */
+    --danger-color: #dc3545;        /* Rojo */
+    --warning-color: #ffc107;       /* Amarillo */
+    --info-color: #17a2b8;          /* Azul info */
+    --white: #ffffff;               /* Blanco */
+    --black: #000000;               /* Negro */
+    --font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --transition-speed: 0.3s;
+  }
+  
+  /* ===========================================================
+     Reset y estilos base
+     =========================================================== */
+  body {
+    font-family: var(--font-family);
+    color: #333;
+    line-height: 1.6;
+    background-color: #f5f7f9;
+    margin: 0;
+    padding: 0;
+  }
+  
+  a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color var(--transition-speed);
+  }
+  
+  a:hover {
+    color: var(--primary-dark);
+  }
+  
+  /* ===========================================================
+     Estilos de Bootstrap personalizados
+     =========================================================== */
+  
+  /* Colores primarios personalizados */
+  .bg-primary {
+    background-color: var(--primary-color) !important;
+  }
+  
+  .text-primary {
+    color: var(--primary-color) !important;
+  }
+  
+  .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+  }
+  
+  .btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+  }
+  
+  /* Forms */
+  .form-control:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 0.25rem rgba(79, 148, 205, 0.25);
+  }
+  
+  /* Tarjetas */
+  .card {
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+    overflow: hidden;
+  }
+  
+  .card-header.bg-primary {
+    color: white;
+    border-bottom: none;
+  }
+  
+  /* ===========================================================
+     Componentes específicos
+     =========================================================== */
+  
+  /* Header y navegación */
+  header {
+    background-color: var(--white);
+  }
+  
+  .navbar-light .navbar-nav .nav-link {
+    color: rgba(0, 0, 0, 0.7);
+  }
+  
+  .navbar-light .navbar-nav .nav-link:hover,
+  .navbar-light .navbar-nav .nav-link:focus {
+    color: var(--primary-color);
+  }
+  
+  .navbar-light .navbar-nav .active>.nav-link,
+  .navbar-light .navbar-nav .nav-link.active,
+  .navbar-light .navbar-nav .nav-link.show,
+  .navbar-light .navbar-nav .show>.nav-link {
+    color: var(--primary-color);
+  }
+  
+  /* Calendario y selección de turnos */
+  .day-available {
+    background-color: rgba(40, 167, 69, 0.1);
+    cursor: pointer;
+  }
+  
+  .day-selected {
+    background-color: rgba(79, 148, 205, 0.3);
+  }
+  
+  .time-slot {
+    display: block;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+  }
+  
+  .time-slot:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-color);
+  }
+  
+  .time-slot.selected {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-dark);
+  }
+  
+  /* Historial clínico */
+  .timeline-container {
+    position: relative;
+    padding: 1rem 0;
+  }
+  
+  .timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+  }
+  
+  /* Footer */
+  footer {
+    background-color: var(--light-gray);
+    color: var(--secondary-color);
+  }
+  
+  /* ===========================================================
+     Animaciones y efectos
+     =========================================================== */
+  .card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  /* ===========================================================
+     Estilos responsivos
+     =========================================================== */
+  @media (max-width: 767.98px) {
+    .navbar-brand span {
+      display: none;
+    }
+    
+    .timeline-item:before {
+      display: none;
+    }
+    
+    .timeline-date {
+      margin-bottom: 1rem;
+    }
+    
+    .timeline-date:after {
+      display: none;
+    }
+  }
+  
+  /* ===========================================================
+     Utilidades
+     =========================================================== */
+  .shadow-hover {
+    transition: box-shadow var(--transition-speed);
+  }
+  
+  .shadow-hover:hover {
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+  }
+  
+  .rounded-xl {
+    border-radius: 1rem !important;
+  }
+  
+  /* ===========================================================
+     Imprimir
+     =========================================================== */
+  @media print {
+    header, footer, .no-print {
+      display: none !important;
+    }
+    
+    .container {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    .card {
+      border: 1px solid #ddd !important;
+      box-shadow: none !important;
+    }
+  }

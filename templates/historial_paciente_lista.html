@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    {% if pacientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>DNI</th>
+                                    <th>Total Turnos</th>
+                                    <th>Pendientes</th>
+                                    <th>Completados</th>
+                                    <th>Cancelados</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for paciente in pacientes %}
+                                <tr>
+                                    <td>{{ paciente.first_name }} {{ paciente.last_name }}</td>
+                                    <td>{{ paciente.DNI }}</td>
+                                    <td>{{ paciente.total_turnos }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ paciente.turnos_pendientes }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ paciente.turnos_completados }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ paciente.turnos_cancelados }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'historial_paciente_ver' paciente.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{% url 'historial_paciente_pdf' paciente.id %}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                                <i class="fas fa-file-pdf"></i> PDF
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No hay pacientes con historial clínico registrado.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,633 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css" rel="stylesheet">
+<style>
+    .calendario-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .dia-disponible {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+        font-weight: bold;
+    }
+    
+    .dia-no-disponible {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+        text-decoration: line-through;
+    }
+    
+    .datepicker table tr td.active {
+        background-color: #0d6efd !important;
+        background-image: none !important;
+    }
+    
+    .config-panel {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'admin_gestion_disponibilidad' %}">Gestión de Disponibilidad</a></li>
+                    <li class="breadcrumb-item active">Configurar Días</li>
+                </ol>
+            </nav>
+            
+            <h1 class="mb-4">Configurar Días Disponibles</h1>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Panel izquierdo: Calendario -->
+        <div class="col-md-6 mb-4">
+            <div class="calendario-container p-4">
+                <h4 class="mb-3">Selecciona Fechas</h4>
+                <div id="calendario"></div>
+                
+                <div class="mt-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-2" style="width: 20px; height: 20px; background-color: #d4edda; border-radius: 3px;"></div>
+                        <span>Día disponible</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="me-2" style="width: 20px; height: 20px; background-color: #f8d7da; border-radius: 3px;"></div>
+                        <span>Día no disponible</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel derecho: Configuración -->
+        <div class="col-md-6 mb-4">
+            <div class="config-panel p-4">
+                <h4 class="mb-3">Configuración del Día</h4>
+                
+                <div id="sin-seleccion" class="text-center py-4">
+                    <i class="bi bi-calendar3 display-3 text-muted"></i>
+                    <p class="mt-3 text-muted">Selecciona un día en el calendario para configurarlo</p>
+                </div>
+                
+                <div id="configuracion-dia" class="d-none">
+                    <h5 id="fecha-seleccionada" class="mb-3"></h5>
+                    
+                    <!-- Token CSRF -->
+                    {% csrf_token %}
+                    
+                    <!-- Formulario de configuración -->
+                    <div class="mb-4">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="switch-disponible" checked>
+                            <label class="form-check-label" for="switch-disponible">
+                                Disponible para turnos
+                            </label>
+                        </div>
+                        
+                        <div id="motivo-container" class="d-none mb-3">
+                            <label for="motivo" class="form-label">Motivo de no disponibilidad</label>
+                            <input type="text" class="form-control" id="motivo" placeholder="Ej. Feriado, vacaciones, etc.">
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" id="btn-guardar">
+                            <i class="bi bi-save me-1"></i>Guardar configuración
+                        </button>
+                        <button class="btn btn-outline-primary" id="btn-configurar-horarios">
+                            <i class="bi bi-clock me-1"></i>Configurar horarios
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Horarios rápidos -->
+            <div class="config-panel p-4 mt-4">
+                <h4 class="mb-3">Configuración rápida</h4>
+                
+                <div class="mb-3">
+                    <label class="form-label">Marcar rango de fechas como</label>
+                    <div class="d-flex mb-2">
+                        <input type="text" class="form-control me-2" id="fecha-inicio" placeholder="Fecha inicio">
+                        <input type="text" class="form-control" id="fecha-fin" placeholder="Fecha fin">
+                    </div>
+                    <div class="d-flex">
+                        <button class="btn btn-success me-2" id="btn-marcar-disponible">
+                            <i class="bi bi-check-circle me-1"></i>Disponible
+                        </button>
+                        <button class="btn btn-danger" id="btn-marcar-no-disponible">
+                            <i class="bi bi-x-circle me-1"></i>No disponible
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Listado de días configurados -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3 class="mb-3">Días configurados</h3>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Motivo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-dias">
+                        <tr>
+                            <td colspan="4" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Cargando días configurados...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.es.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variables globales
+        let fechaSeleccionada = null;
+        let diasDisponibles = [];
+        let diasNoDisponibles = [];
+        
+        // Inicializar el datepicker para el calendario
+        const calendario = $('#calendario').datepicker({
+            format: 'yyyy-mm-dd',
+            language: 'es',
+            todayHighlight: true,
+            multidate: false,
+            calendarWeeks: true,
+            clearBtn: false,
+            autoclose: true,
+            beforeShowDay: function(date) {
+                const fechaStr = date.toISOString().split('T')[0];
+                if (diasDisponibles.includes(fechaStr)) {
+                    return {
+                        classes: 'dia-disponible',
+                        tooltip: 'Día disponible'
+                    };
+                } else if (diasNoDisponibles.includes(fechaStr)) {
+                    return {
+                        classes: 'dia-no-disponible',
+                        tooltip: 'Día no disponible'
+                    };
+                }
+                return true;
+            }
+        });
+        
+        // Inicializar los datepickers para rango de fechas
+        $('#fecha-inicio, #fecha-fin').datepicker({
+            format: 'yyyy-mm-dd',
+            language: 'es',
+            todayHighlight: true,
+            autoclose: true
+        });
+        
+        // Cargar días configurados
+        cargarDiasConfigurados();
+        
+        // Event listeners
+        $('#calendario').on('changeDate', function(e) {
+            const fecha = e.format('yyyy-mm-dd');
+            seleccionarFecha(fecha);
+        });
+        
+        $('#switch-disponible').on('change', function() {
+            if (this.checked) {
+                $('#motivo-container').addClass('d-none');
+            } else {
+                $('#motivo-container').removeClass('d-none');
+            }
+        });
+        
+        $('#btn-guardar').on('click', function() {
+            guardarConfiguracion();
+        });
+        
+        $('#btn-configurar-horarios').on('click', function() {
+            if (!fechaSeleccionada) return;
+            
+            const esDiaDisponible = $('#switch-disponible').prop('checked');
+            if (!esDiaDisponible) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Día no disponible',
+                    text: 'Solo puedes configurar horarios para días disponibles'
+                });
+                return;
+            }
+            
+            window.location.href = `/admin/horarios-dia/${fechaSeleccionada}/`;
+        });
+        
+        $('#btn-marcar-disponible').on('click', function() {
+            marcarRangoFechas(true);
+        });
+        
+        $('#btn-marcar-no-disponible').on('click', function() {
+            marcarRangoFechas(false);
+        });
+        
+        // Función para cargar los días configurados
+        function cargarDiasConfigurados() {
+            fetch('/turnos/admin/dias-disponibles/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Separar días disponibles y no disponibles
+                diasDisponibles = [];
+                diasNoDisponibles = [];
+                
+                data.forEach(dia => {
+                    if (dia.disponible) {
+                        diasDisponibles.push(dia.fecha);
+                    } else {
+                        diasNoDisponibles.push(dia.fecha);
+                    }
+                });
+                
+                // Refrescar el calendario
+                $('#calendario').datepicker('update');
+                
+                // Actualizar la tabla
+                actualizarTablaDias(data);
+            })
+            .catch(error => {
+                console.error('Error al cargar días:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron cargar los días configurados'
+                });
+            });
+        }
+        
+        // Función para actualizar la tabla de días
+        function actualizarTablaDias(dias) {
+            const tablaDias = document.getElementById('tabla-dias');
+            
+            if (!dias || dias.length === 0) {
+                tablaDias.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <i class="bi bi-calendar-x display-4 text-muted"></i>
+                            <p class="mt-2">No hay días configurados</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Ordenar días por fecha (más reciente primero)
+            dias.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            
+            let html = '';
+            dias.forEach(dia => {
+                const fecha = new Date(dia.fecha);
+                const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                html += `
+                    <tr>
+                        <td>${fechaFormateada}</td>
+                        <td>
+                            <span class="badge bg-${dia.disponible ? 'success' : 'danger'}">
+                                ${dia.disponible ? 'Disponible' : 'No disponible'}
+                            </span>
+                        </td>
+                        <td>${dia.motivo || '-'}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                ${dia.disponible ? 
+                                    `<a href="/admin/horarios-dia/${dia.fecha}/" class="btn btn-outline-primary">
+                                        <i class="bi bi-clock me-1"></i>Horarios
+                                    </a>` : ''
+                                }
+                                <button class="btn btn-outline-danger btn-eliminar" data-id="${dia.id}">
+                                    <i class="bi bi-trash me-1"></i>Eliminar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tablaDias.innerHTML = html;
+            
+            // Añadir eventos a los botones de eliminar
+            document.querySelectorAll('.btn-eliminar').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const diaId = this.getAttribute('data-id');
+                    eliminarDia(diaId);
+                });
+            });
+        }
+        
+        // Función para seleccionar una fecha
+        function seleccionarFecha(fecha) {
+            fechaSeleccionada = fecha;
+            
+            // Actualizar interfaz
+            document.getElementById('fecha-seleccionada').textContent = formatearFecha(fecha);
+            document.getElementById('sin-seleccion').classList.add('d-none');
+            document.getElementById('configuracion-dia').classList.remove('d-none');
+            
+            // Configurar switch de disponibilidad
+            const esDisponible = diasDisponibles.includes(fecha);
+            document.getElementById('switch-disponible').checked = esDisponible;
+            
+            // Mostrar/ocultar campo de motivo
+            if (esDisponible) {
+                document.getElementById('motivo-container').classList.add('d-none');
+                document.getElementById('motivo').value = '';
+            } else {
+                document.getElementById('motivo-container').classList.remove('d-none');
+                
+                // Intentar obtener el motivo si existe
+                fetch(`/turnos/admin/dias/${fecha}/detalle/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.motivo) {
+                        document.getElementById('motivo').value = data.motivo;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al obtener motivo:', error);
+                });
+            }
+        }
+        
+        // Función para guardar la configuración de un día
+        function guardarConfiguracion() {
+            if (!fechaSeleccionada) return;
+            
+            const disponible = document.getElementById('switch-disponible').checked;
+            const motivo = document.getElementById('motivo').value;
+            
+            const formData = new FormData();
+            formData.append('fecha', fechaSeleccionada);
+            formData.append('disponible', disponible ? 'true' : 'false');
+            
+            if (!disponible && motivo) {
+                formData.append('motivo', motivo);
+            }
+            
+            fetch('/turnos/admin/dias-disponibles/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Configuración guardada',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    
+                    // Recargar datos
+                    cargarDiasConfigurados();
+                    
+                    // Actualizar visualización
+                    if (disponible) {
+                        if (!diasDisponibles.includes(fechaSeleccionada)) {
+                            diasDisponibles.push(fechaSeleccionada);
+                        }
+                        diasNoDisponibles = diasNoDisponibles.filter(d => d !== fechaSeleccionada);
+                    } else {
+                        if (!diasNoDisponibles.includes(fechaSeleccionada)) {
+                            diasNoDisponibles.push(fechaSeleccionada);
+                        }
+                        diasDisponibles = diasDisponibles.filter(d => d !== fechaSeleccionada);
+                    }
+                    
+                    $('#calendario').datepicker('update');
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Error al guardar la configuración'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error al guardar configuración:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al comunicarse con el servidor'
+                });
+            });
+        }
+        
+        // Función para eliminar un día
+        function eliminarDia(diaId) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: 'Esta acción no se puede deshacer',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/turnos/admin/dias/${diaId}/eliminar/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Día eliminado',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                            
+                            // Recargar datos
+                            cargarDiasConfigurados();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Error al eliminar el día'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al eliminar día:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al comunicarse con el servidor'
+                        });
+                    });
+                }
+            });
+        }
+        
+        // Función para marcar un rango de fechas
+        function marcarRangoFechas(disponible) {
+            const fechaInicio = document.getElementById('fecha-inicio').value;
+            const fechaFin = document.getElementById('fecha-fin').value;
+            
+            if (!fechaInicio || !fechaFin) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Fechas incompletas',
+                    text: 'Debes seleccionar una fecha de inicio y fin'
+                });
+                return;
+            }
+            
+            // Validar que la fecha de fin sea posterior a la de inicio
+            if (new Date(fechaInicio) > new Date(fechaFin)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Rango inválido',
+                    text: 'La fecha de fin debe ser posterior a la de inicio'
+                });
+                return;
+            }
+            
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: `¿Deseas marcar todas las fechas desde ${fechaInicio} hasta ${fechaFin} como ${disponible ? 'disponibles' : 'no disponibles'}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: disponible ? '#28a745' : '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, continuar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar loading
+                    Swal.fire({
+                        title: 'Procesando...',
+                        html: 'Por favor espera mientras se configuran las fechas',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Enviar petición al servidor
+                    fetch('/turnos/admin/dias/configurar-rango/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            fecha_inicio: fechaInicio,
+                            fecha_fin: fechaFin,
+                            disponible: disponible
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Fechas configuradas',
+                                text: `Se han configurado ${data.dias_configurados || 'varias'} fechas correctamente`
+                            });
+                            
+                            // Limpiar campos
+                            document.getElementById('fecha-inicio').value = '';
+                            document.getElementById('fecha-fin').value = '';
+                            
+                            // Recargar datos
+                            cargarDiasConfigurados();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Error al configurar las fechas'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al configurar rango:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al comunicarse con el servidor'
+                        });
+                    });
+                }
+            });
+        }
+        
+        // Función para formatear fecha
+        function formatearFecha(fechaStr) {
+            const fecha = new Date(fechaStr);
+            return fecha.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+    });
+</script>
+{% endblock %} 

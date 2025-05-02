@@ -1,0 +1,145 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-calendar-alt fa-2x me-3"></i>
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <a href="{% url 'admin:index' %}" class="btn btn-light">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+
+
+    <!-- Filtros -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="fecha_desde" class="form-label">
+                        <i class="fas fa-calendar me-2"></i>Fecha desde
+                    </label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_hasta" class="form-label">
+                        <i class="fas fa-calendar me-2"></i>Fecha hasta
+                    </label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="estado" class="form-label">
+                        <i class="fas fa-flag me-2"></i>Estado
+                    </label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos</option>
+                        <option value="pendiente" {% if filtros.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="confirmado" {% if filtros.estado == 'confirmado' %}selected{% endif %}>Confirmado</option>
+                        <option value="cancelado" {% if filtros.estado == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                    <a href="{% url 'admin_listado_turnos' %}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-broom me-2"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de turnos -->
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th><i class="fas fa-calendar-day me-2"></i>Fecha</th>
+                    <th><i class="fas fa-clock me-2"></i>Hora</th>
+                    <th><i class="fas fa-user me-2"></i>Paciente</th>
+                    <th><i class="fas fa-flag me-2"></i>Estado</th>
+                    <th><i class="fas fa-cog me-2"></i>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for turno in turnos %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="me-2">
+                                <i class="fas fa-calendar-day text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">{{ turno.dia.fecha|date:"d/m/Y" }}</div>
+                                <div class="text-muted small">{{ turno.dia.fecha|date:"l" }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            <span>{{ turno.horario.hora_inicio|time:"H:i" }} hs</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user text-primary me-2"></i>
+                            {{ turno.paciente.get_full_name }}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge rounded-pill {% if turno.estado == 'pendiente' %}bg-warning text-dark
+                                     {% elif turno.estado == 'confirmado' %}bg-success
+                                     {% else %}bg-danger{% endif %}">
+                            <i class="fas {% if turno.estado == 'pendiente' %}fa-clock
+                                    {% elif turno.estado == 'confirmado' %}fa-check-circle
+                                    {% else %}fa-times-circle{% endif %} me-1"></i>
+                            {{ turno.estado|title }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'historial_paciente_ver' turno.paciente.id %}" class="btn btn-sm btn-info">
+                            <i class="fas fa-history me-1"></i>Ver Historial
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                        <p class="mb-0">No hay turnos que coincidan con los filtros seleccionados</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrahead %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+    .container-fluid { max-width: 1400px; }
+    .table { margin-top: 1rem; }
+    .badge { padding: 0.5em 1em; font-size: 0.9em; }
+    .table th { font-weight: 600; background-color: #f8f9fa; border-top: none; }
+    .table td { vertical-align: middle; padding: 1rem 0.75rem; }
+    .btn-info { color: white; background-color: #17a2b8; }
+    .btn-info:hover { color: white; background-color: #138496; }
+    .card { border: none; }
+    .card-header { border-bottom: none; }
+    .form-control:focus, .form-select:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .calendar-icon, .clock-icon { font-size: 1.2rem; }
+    .btn-light { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: white; }
+    .btn-light:hover { background-color: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: white; }
+</style>
+{% endblock %}

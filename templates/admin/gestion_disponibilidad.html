@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Gestión de Disponibilidad</h1>
+    
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        <!-- Panel izquierdo: Agregar nuevo día -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5>Agregar Nuevo Día</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'admin_dias_agregar' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label">Fecha</label>
+                            <input type="text" class="form-control datepicker" id="fecha" name="fecha" placeholder="DD/MM/YYYY" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="disponible" name="disponible" checked>
+                            <label class="form-check-label" for="disponible">Disponible</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel derecho: Días configurados -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5>Días Configurados</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dia in dias %}
+                            <tr>
+                                <td>{{ dia.fecha|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge {% if dia.disponible %}bg-success{% else %}bg-danger{% endif %}">
+                                        {% if dia.disponible %}Disponible{% else %}No disponible{% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-info btn-sm btn-ver-horarios" 
+                                                data-dia-id="{{ dia.id }}" 
+                                                data-fecha="{{ dia.fecha|date:'d/m/Y' }}">
+                                            Ver Horarios
+                                        </button>
+                                        <a href="{% url 'admin_eliminar_dia' dia.id %}" class="btn btn-danger btn-sm" 
+                                           onclick="return confirm('¿Estás seguro de que deseas eliminar este día? Esta acción no se puede deshacer.')">
+                                            Borrar
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">No hay días configurados</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para configurar horarios -->
+<div class="modal fade" id="modalHorarios" tabindex="-1" aria-labelledby="modalHorariosTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalHorariosTitle">Configurar Horarios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Contenedor para mensajes -->
+                <div id="mensajesHorarios"></div>
+                
+                <!-- Contenedor para horarios -->
+                <div id="horariosContainer"></div>
+                
+                <!-- Formulario para agregar nuevo horario -->
+                <div class="mt-4 border-top pt-3">
+                    <h6>Agregar Nuevo Horario</h6>
+                    <div class="row g-3 align-items-center">
+                        <div class="col-auto">
+                            <label for="nuevoHorario" class="col-form-label">Hora:</label>
+                        </div>
+                        <div class="col-auto">
+                            <input type="time" id="nuevoHorario" class="form-control" step="1800">
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-success" id="btnAgregarHorario">Agregar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarHorarios">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.es.min.js"></script>
+<script src="{% static 'js/fix_horarios.js' %}"></script>
+<script>
+    // Variables globales
+    let diaIdActual = null;
+    
+    $(document).ready(function() {
+        // Inicializar datepicker
+        $('.datepicker').datepicker({
+            format: 'dd/mm/yyyy',
+            language: 'es',
+            autoclose: true,
+            todayHighlight: true
+        });
+        
+        // Configurar los botones de Ver Horarios
+        $('.btn-ver-horarios').on('click', function() {
+            const diaId = $(this).data('dia-id');
+            const fecha = $(this).data('fecha');
+            abrirModalHorarios(diaId, fecha);
+        });
+        
+        // Configurar el botón de agregar nuevo horario
+        $('#btnAgregarHorario').on('click', function() {
+            agregarNuevoHorario();
+        });
+        
+        // Configurar el botón de guardar horarios
+        $('#btnGuardarHorarios').on('click', function() {
+            guardarCambiosHorarios();
+        });
+    });
+    
+    // Función para abrir el modal de configuración de horarios
+    function abrirModalHorarios(diaId, fecha) {
+        // Guardar el ID del día actual
+        diaIdActual = diaId;
+        
+        // Actualizar el título del modal
+        $('#modalHorariosTitle').text(`Configurar Horarios - ${fecha}`);
+        
+        // Limpiar mensajes anteriores
+        $('#mensajesHorarios').html('');
+        
+        // Cargar los horarios del día
+        fetch(`/horarios-disponibles/${diaId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mostrar los horarios en el modal
+                    mostrarHorarios(data.horarios);
+                } else {
+                    // Mostrar mensaje de error
+                    mostrarMensajeHorarios('error', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarMensajeHorarios('error', 'Error al comunicarse con el servidor');
+            });
+        
+        // Mostrar el modal
+        $('#modalHorarios').modal('show');
+    }
+    
+    // Función para mostrar los horarios en el modal
+    function mostrarHorarios(horarios) {
+        const container = document.getElementById('horariosContainer');
+        container.innerHTML = '';
+        
+        // Crear tabla de horarios
+        const table = document.createElement('table');
+        table.className = 'table table-striped';
+        
+        // Crear encabezado
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr>
+                <th>Hora</th>
+                <th>Disponible</th>
+                <th>Acciones</th>
+            </tr>
+        `;
+        table.appendChild(thead);
+        
+        // Crear cuerpo de la tabla
+        const tbody = document.createElement('tbody');
+        
+        horarios.forEach(horario => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${horario.hora_inicio}</td>
+                <td>
+                    <div class="form-check">
+                        <input class="form-check-input horario-checkbox" type="checkbox" 
+                               data-id="${horario.id}" ${horario.disponible ? 'checked' : ''}>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-danger btn-sm btn-eliminar-horario" 
+                            data-id="${horario.id}">
+                        Eliminar
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        table.appendChild(tbody);
+        container.appendChild(table);
+        
+        // Configurar los botones de eliminar horario
+        document.querySelectorAll('.btn-eliminar-horario').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const horarioId = this.dataset.id;
+                eliminarHorario(horarioId);
+            });
+        });
+    }
+    
+    // Función para agregar un nuevo horario
+    function agregarNuevoHorario() {
+        const horaInput = document.getElementById('nuevoHorario');
+        const hora = horaInput.value;
+        
+        if (!hora) {
+            mostrarMensajeHorarios('error', 'Debe seleccionar una hora');
+            return;
+        }
+        
+        // Agregar el nuevo horario a la tabla
+        const container = document.getElementById('horariosContainer');
+        const tbody = container.querySelector('tbody');
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${hora}</td>
+            <td>
+                <div class="form-check">
+                    <input class="form-check-input horario-checkbox" type="checkbox" 
+                           data-hora="${hora}" checked>
+                </div>
+            </td>
+            <td>
+                <button class="btn btn-danger btn-sm btn-eliminar-horario-temp">
+                    Eliminar
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        
+        // Configurar el botón de eliminar
+        tr.querySelector('.btn-eliminar-horario-temp').addEventListener('click', function() {
+            tr.remove();
+        });
+        
+        // Limpiar el input
+        horaInput.value = '';
+    }
+    
+    // Función para eliminar un horario existente
+    function eliminarHorario(horarioId) {
+        if (confirm('¿Estás seguro de que deseas eliminar este horario?')) {
+            // Eliminar la fila de la tabla
+            const checkbox = document.querySelector(`.horario-checkbox[data-id="${horarioId}"]`);
+            if (checkbox) {
+                const row = checkbox.closest('tr');
+                row.remove();
+            }
+        }
+    }
+    
+    // Función para guardar los cambios de horarios
+    function guardarCambiosHorarios() {
+        if (!diaIdActual) {
+            mostrarMensajeHorarios('error', 'No se ha seleccionado un día');
+            return;
+        }
+        
+        const horarios = [];
+        
+        // Recolectar datos de horarios existentes
+        document.querySelectorAll('.horario-checkbox[data-id]').forEach(checkbox => {
+            horarios.push({
+                id: checkbox.dataset.id,
+                disponible: checkbox.checked
+            });
+        });
+        
+        // Recolectar datos de nuevos horarios
+        document.querySelectorAll('.horario-checkbox[data-hora]').forEach(checkbox => {
+            horarios.push({
+                hora_inicio: checkbox.dataset.hora,
+                disponible: checkbox.checked
+            });
+        });
+        
+        // Enviar datos al servidor
+        fetch(`/admin/horarios/guardar/${diaIdActual}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ horarios })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                mostrarMensajeHorarios('success', data.message);
+                // Cerrar el modal después de 2 segundos
+                setTimeout(() => {
+                    $('#modalHorarios').modal('hide');
+                    // Recargar la página para mostrar los cambios
+                    window.location.reload();
+                }, 2000);
+            } else {
+                // Mostrar mensaje de error
+                mostrarMensajeHorarios('error', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mostrarMensajeHorarios('error', 'Error al comunicarse con el servidor');
+        });
+    }
+    
+    // Función para mostrar mensajes en el modal
+    function mostrarMensajeHorarios(tipo, mensaje) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = tipo === 'success' ? 'alert alert-success' : 'alert alert-danger';
+        alertDiv.textContent = mensaje;
+        
+        const mensajesContainer = document.getElementById('mensajesHorarios');
+        mensajesContainer.innerHTML = '';
+        mensajesContainer.appendChild(alertDiv);
+    }
+</script>
+
+{% endblock %}

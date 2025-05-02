@@ -1,0 +1,514 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    .fc-day.disponible {
+        background-color: #d4edda;
+        cursor: pointer;
+    }
+    .fc-day.seleccionado {
+        background-color: #cce5ff;
+        border: 2px solid #0d6efd;
+    }
+    .time-slot {
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    .time-slot:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .time-slot.disponible {
+        border-color: #28a745;
+    }
+    .time-slot.no-disponible {
+        border-color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Configuración de Días y Horarios Disponibles</h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="row g-0">
+                        <!-- Calendario para seleccionar días -->
+                        <div class="col-md-7 p-4 border-end">
+                            <h5 class="mb-3">Selecciona días disponibles</h5>
+                            <div id="calendario"></div>
+                        </div>
+                        
+                        <!-- Panel de configuración de horarios -->
+                        <div class="col-md-5 p-4">
+                            <div id="panel-dia-seleccionado">
+                                <h5 class="mb-3" id="fecha-seleccionada">Selecciona un día en el calendario</h5>
+                                
+                                <div id="sin-seleccion" class="text-center py-5">
+                                    <i class="bi bi-calendar-plus display-4 text-muted mb-3"></i>
+                                    <p class="text-muted">Haz clic en un día del calendario para configurar su disponibilidad y horarios.</p>
+                                </div>
+                                
+                                <div id="configuracion-dia" class="d-none">
+                                    <!-- Token CSRF oculto -->
+                                    {% csrf_token %}
+                                    
+                                    <!-- Switch para habilitar/deshabilitar el día -->
+                                    <div class="form-check form-switch mb-4">
+                                        <input class="form-check-input" type="checkbox" id="switch-disponible" checked>
+                                        <label class="form-check-label" for="switch-disponible">
+                                            <span class="badge bg-success" id="badge-disponible">Día disponible</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <!-- Configuración de horarios -->
+                                    <div id="panel-horarios">
+                                        <h6 class="mb-3 border-bottom pb-2">Horarios disponibles</h6>
+                                        
+                                        <div class="text-center py-3 d-none" id="cargando-horarios">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Cargando...</span>
+                                            </div>
+                                            <p class="mt-2 text-muted">Cargando horarios...</p>
+                                        </div>
+                                        
+                                        <div id="sin-horarios" class="text-center py-3 d-none">
+                                            <i class="bi bi-clock text-muted display-5 mb-3"></i>
+                                            <p class="text-muted">No hay horarios configurados para este día.</p>
+                                        </div>
+                                        
+                                        <div id="lista-horarios" class="row row-cols-2 g-3 mb-4"></div>
+                                        
+                                        <!-- Formulario para agregar horario -->
+                                        <div class="mt-4">
+                                            <h6 class="mb-3">Agregar nuevo horario</h6>
+                                            <div class="input-group mb-3">
+                                                <input type="time" class="form-control" id="nuevo-horario" step="900">
+                                                <button class="btn btn-primary" type="button" id="btn-agregar-horario">
+                                                    <i class="bi bi-plus-circle me-1"></i>Agregar
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mt-4">
+                                            <button class="btn btn-success w-100" id="btn-guardar-cambios">
+                                                <i class="bi bi-save me-1"></i>Guardar cambios
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="modal-confirmacion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar cambios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas guardar los cambios para <span id="fecha-confirmacion"></span>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-confirmar-guardar">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/es.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variables globales
+        let fechaSeleccionada = null;
+        let diasDisponibles = [];
+        
+        // Inicializar el calendario
+        const calendarEl = document.getElementById('calendario');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            locale: 'es',
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth'
+            },
+            dateClick: function(info) {
+                seleccionarFecha(info.dateStr);
+            },
+            dayCellDidMount: function(info) {
+                // Marcar días disponibles
+                if (diasDisponibles.includes(info.date.toISOString().split('T')[0])) {
+                    info.el.classList.add('disponible');
+                }
+            }
+        });
+        
+        calendar.render();
+        
+        // Cargar días disponibles desde el servidor
+        cargarDiasDisponibles();
+        
+        // Event listeners
+        document.getElementById('switch-disponible').addEventListener('change', function() {
+            const badge = document.getElementById('badge-disponible');
+            
+            if (this.checked) {
+                badge.textContent = 'Día disponible';
+                badge.classList.remove('bg-danger');
+                badge.classList.add('bg-success');
+                document.getElementById('panel-horarios').classList.remove('d-none');
+            } else {
+                badge.textContent = 'Día no disponible';
+                badge.classList.remove('bg-success');
+                badge.classList.add('bg-danger');
+                document.getElementById('panel-horarios').classList.add('d-none');
+            }
+        });
+        
+        document.getElementById('btn-agregar-horario').addEventListener('click', agregarHorario);
+        document.getElementById('btn-guardar-cambios').addEventListener('click', confirmarGuardarCambios);
+        document.getElementById('btn-confirmar-guardar').addEventListener('click', guardarCambios);
+        
+        // Funciones
+        function cargarDiasDisponibles() {
+            fetch('/turnos/admin/dias-disponibles/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                diasDisponibles = data.map(dia => dia.fecha);
+                
+                // Actualizar el calendario
+                calendar.getEvents().forEach(event => event.remove());
+                
+                // Volver a renderizar para mostrar días disponibles
+                calendar.render();
+            })
+            .catch(error => {
+                console.error('Error al cargar días disponibles:', error);
+                mostrarMensaje('error', 'No se pudieron cargar los días disponibles');
+            });
+        }
+        
+        function seleccionarFecha(fecha) {
+            fechaSeleccionada = fecha;
+            
+            // Actualizar interfaz
+            document.getElementById('fecha-seleccionada').textContent = formatearFecha(fecha);
+            document.getElementById('sin-seleccion').classList.add('d-none');
+            document.getElementById('configuracion-dia').classList.remove('d-none');
+            
+            // Verificar si el día está disponible
+            const esDiaDisponible = diasDisponibles.includes(fecha);
+            const switchDisponible = document.getElementById('switch-disponible');
+            
+            switchDisponible.checked = esDiaDisponible;
+            
+            // Actualizar apariencia del badge
+            const badge = document.getElementById('badge-disponible');
+            if (esDiaDisponible) {
+                badge.textContent = 'Día disponible';
+                badge.classList.remove('bg-danger');
+                badge.classList.add('bg-success');
+                document.getElementById('panel-horarios').classList.remove('d-none');
+                
+                // Cargar horarios
+                cargarHorarios(fecha);
+            } else {
+                badge.textContent = 'Día no disponible';
+                badge.classList.remove('bg-success');
+                badge.classList.add('bg-danger');
+                document.getElementById('panel-horarios').classList.add('d-none');
+            }
+        }
+        
+        function cargarHorarios(fecha) {
+            // Mostrar indicador de carga
+            document.getElementById('cargando-horarios').classList.remove('d-none');
+            document.getElementById('sin-horarios').classList.add('d-none');
+            document.getElementById('lista-horarios').innerHTML = '';
+            
+            fetch(`/turnos/admin/horarios-dia/${fecha}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cargando-horarios').classList.add('d-none');
+                    
+                    if (data.success && data.horarios && data.horarios.length > 0) {
+                        mostrarHorarios(data.horarios);
+                    } else {
+                        document.getElementById('sin-horarios').classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar horarios:', error);
+                    document.getElementById('cargando-horarios').classList.add('d-none');
+                    document.getElementById('sin-horarios').classList.remove('d-none');
+                    mostrarMensaje('error', 'Error al cargar los horarios');
+                });
+        }
+        
+        function mostrarHorarios(horarios) {
+            const listaHorarios = document.getElementById('lista-horarios');
+            listaHorarios.innerHTML = '';
+            
+            horarios.forEach(horario => {
+                const divHorario = document.createElement('div');
+                divHorario.className = 'col';
+                
+                divHorario.innerHTML = `
+                    <div class="card time-slot ${horario.disponible ? 'disponible' : 'no-disponible'}">
+                        <div class="card-body p-3 text-center">
+                            <h5 class="card-title mb-2">${horario.hora}</h5>
+                            <div class="form-check form-switch d-flex justify-content-center mb-2">
+                                <input class="form-check-input mx-2" type="checkbox" 
+                                       id="switch-${horario.id}" data-id="${horario.id}" data-hora="${horario.hora}"
+                                       ${horario.disponible ? 'checked' : ''}>
+                            </div>
+                            <span class="badge ${horario.disponible ? 'bg-success' : 'bg-danger'}" 
+                                  id="estado-${horario.id}">
+                                ${horario.disponible ? 'Disponible' : 'No disponible'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                listaHorarios.appendChild(divHorario);
+                
+                // Añadir evento para cambiar el estado
+                const switchEl = document.getElementById(`switch-${horario.id}`);
+                switchEl.addEventListener('change', function() {
+                    const cardEl = this.closest('.time-slot');
+                    const badgeEl = document.getElementById(`estado-${horario.id}`);
+                    
+                    if (this.checked) {
+                        cardEl.classList.add('disponible');
+                        cardEl.classList.remove('no-disponible');
+                        badgeEl.textContent = 'Disponible';
+                        badgeEl.classList.remove('bg-danger');
+                        badgeEl.classList.add('bg-success');
+                    } else {
+                        cardEl.classList.remove('disponible');
+                        cardEl.classList.add('no-disponible');
+                        badgeEl.textContent = 'No disponible';
+                        badgeEl.classList.remove('bg-success');
+                        badgeEl.classList.add('bg-danger');
+                    }
+                });
+            });
+        }
+        
+        function agregarHorario() {
+            const nuevoHorarioInput = document.getElementById('nuevo-horario');
+            const horario = nuevoHorarioInput.value;
+            
+            if (!horario) {
+                mostrarMensaje('warning', 'Debes seleccionar una hora');
+                return;
+            }
+            
+            // Validar que no esté duplicado
+            const horariosActuales = Array.from(document.querySelectorAll('#lista-horarios .time-slot [data-hora]'))
+                .map(el => el.getAttribute('data-hora'));
+            
+            if (horariosActuales.includes(horario)) {
+                mostrarMensaje('warning', 'Este horario ya está en la lista');
+                return;
+            }
+            
+            // Crear elemento visual para el nuevo horario
+            const listaHorarios = document.getElementById('lista-horarios');
+            const divHorario = document.createElement('div');
+            divHorario.className = 'col';
+            
+            // ID temporal para el nuevo horario
+            const tempId = 'nuevo-' + Date.now();
+            
+            divHorario.innerHTML = `
+                <div class="card time-slot disponible">
+                    <div class="card-body p-3 text-center">
+                        <h5 class="card-title mb-2">${horario}</h5>
+                        <div class="form-check form-switch d-flex justify-content-center mb-2">
+                            <input class="form-check-input mx-2" type="checkbox" 
+                                   id="switch-${tempId}" data-id="${tempId}" data-hora="${horario}"
+                                   checked>
+                        </div>
+                        <span class="badge bg-success" id="estado-${tempId}">
+                            Disponible
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            listaHorarios.appendChild(divHorario);
+            
+            // Añadir evento para cambiar el estado
+            const switchEl = document.getElementById(`switch-${tempId}`);
+            switchEl.addEventListener('change', function() {
+                const cardEl = this.closest('.time-slot');
+                const badgeEl = document.getElementById(`estado-${tempId}`);
+                
+                if (this.checked) {
+                    cardEl.classList.add('disponible');
+                    cardEl.classList.remove('no-disponible');
+                    badgeEl.textContent = 'Disponible';
+                    badgeEl.classList.remove('bg-danger');
+                    badgeEl.classList.add('bg-success');
+                } else {
+                    cardEl.classList.remove('disponible');
+                    cardEl.classList.add('no-disponible');
+                    badgeEl.textContent = 'No disponible';
+                    badgeEl.classList.remove('bg-success');
+                    badgeEl.classList.add('bg-danger');
+                }
+            });
+            
+            // Limpiar input
+            nuevoHorarioInput.value = '';
+            
+            // Ocultar mensaje de sin horarios si estaba visible
+            document.getElementById('sin-horarios').classList.add('d-none');
+        }
+        
+        function confirmarGuardarCambios() {
+            if (!fechaSeleccionada) return;
+            
+            // Mostrar modal de confirmación
+            document.getElementById('fecha-confirmacion').textContent = formatearFecha(fechaSeleccionada);
+            
+            const modalConfirmacion = new bootstrap.Modal(document.getElementById('modal-confirmacion'));
+            modalConfirmacion.show();
+        }
+        
+        function guardarCambios() {
+            if (!fechaSeleccionada) return;
+            
+            const switchDisponible = document.getElementById('switch-disponible');
+            const disponible = switchDisponible.checked;
+            
+            // Si el día se marca como no disponible
+            if (!disponible) {
+                guardarDisponibilidadDia(fechaSeleccionada, false);
+                return;
+            }
+            
+            // Recopilar información de horarios
+            const horarios = Array.from(document.querySelectorAll('#lista-horarios .time-slot [data-hora]'))
+                .map(el => ({
+                    hora: el.getAttribute('data-hora'),
+                    disponible: el.checked
+                }));
+            
+            // Guardar primero la disponibilidad del día
+            guardarDisponibilidadDia(fechaSeleccionada, true)
+                .then(() => {
+                    // Luego guardar los horarios
+                    return guardarHorariosDia(fechaSeleccionada, horarios);
+                })
+                .then(() => {
+                    mostrarMensaje('success', 'Cambios guardados correctamente');
+                    
+                    // Cerrar modal
+                    const modalConfirmacion = bootstrap.Modal.getInstance(document.getElementById('modal-confirmacion'));
+                    modalConfirmacion.hide();
+                    
+                    // Actualizar lista de días disponibles
+                    cargarDiasDisponibles();
+                })
+                .catch(error => {
+                    console.error('Error al guardar cambios:', error);
+                    mostrarMensaje('error', 'Error al guardar los cambios');
+                });
+        }
+        
+        function guardarDisponibilidadDia(fecha, disponible) {
+            const formData = new FormData();
+            formData.append('fecha', fecha);
+            formData.append('disponible', disponible ? 'true' : 'false');
+            
+            return fetch('/turnos/admin/dias-disponibles/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    throw new Error(data.message || 'Error al guardar disponibilidad del día');
+                }
+                return data;
+            });
+        }
+        
+        function guardarHorariosDia(fecha, horarios) {
+            return fetch('/turnos/admin/dias/horarios/guardar/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    fecha: fecha,
+                    horarios: horarios
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Error al guardar horarios');
+                }
+                return data;
+            });
+        }
+        
+        function formatearFecha(fechaStr) {
+            const fecha = new Date(fechaStr);
+            return fecha.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+        
+        function mostrarMensaje(tipo, mensaje) {
+            Swal.fire({
+                icon: tipo,
+                title: mensaje,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        }
+    });
+</script>
+{% endblock %} 
