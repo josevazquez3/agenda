@@ -512,3 +512,101 @@ function mostrarAlerta(mensaje, tipo) {
         alert(`${mensaje}`);
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Script fix_horarios.js cargado correctamente');
+    
+    // Interceptar todos los botones de "Ver Horarios"
+    document.querySelectorAll('.btn-ver-horarios').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Obtener fecha del botón
+            const fecha = this.dataset.fecha || this.getAttribute('data-fecha');
+            if (!fecha) {
+                console.error('Error: No se proporcionó fecha');
+                return;
+            }
+            
+            console.log('Click en Ver Horarios para fecha:', fecha);
+            
+            // Mostrar modal con spinner
+            const modal = new bootstrap.Modal(document.getElementById('modalHorarios') || document.getElementById('modalHorariosDia'));
+            modal.show();
+            
+            // Usar una única ruta para obtener los horarios
+            obtenerHorarios(fecha);
+        });
+    });
+});
+
+// Función simplificada para obtener horarios
+function obtenerHorarios(fecha) {
+    console.log('Obteniendo horarios para la fecha:', fecha);
+    
+    // Determinar los elementos del modal
+    const modalTitle = document.getElementById('modalHorariosTitle') || document.getElementById('modalHorariosDiaTitle');
+    const modalBody = document.getElementById('modalHorariosDiaBody') || document.getElementById('horariosContainer');
+    
+    // Mostrar spinner
+    if (modalBody) {
+        modalBody.innerHTML = `
+            <div class="text-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando horarios...</span>
+                </div>
+                <p class="mt-3">Cargando horarios...</p>
+            </div>
+        `;
+    }
+    
+    // Actualizar título si existe
+    if (modalTitle) {
+        // Formatear fecha para mostrar
+        let fechaFormateada = fecha;
+        try {
+            const fechaObj = new Date(fecha);
+            fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        } catch (e) {
+            console.warn('Error al formatear fecha:', e);
+        }
+        
+        modalTitle.textContent = `Configurar Horarios - ${fechaFormateada}`;
+    }
+    
+    // Guardar fecha en el botón de guardar
+    const btnGuardar = document.getElementById('btnGuardarHorarios') || document.getElementById('guardarHorariosDia');
+    if (btnGuardar) {
+        btnGuardar.setAttribute('data-fecha', fecha);
+    }
+    
+    // Usar la ruta estandarizada
+    const url = `/turnos/admin/horarios-dia/${fecha}/`;
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success === true && data.horarios) {
+                // Éxito, mostrar horarios
+                mostrarHorariosEnModal(data.horarios, fecha);
+            } else {
+                // Respuesta sin formato esperado, mostrar opción para crear horarios
+                console.warn('Formato de respuesta inesperado:', data);
+                mostrarOpcionCrearHorarios(fecha);
+            }
+        })
+        .catch(error => {
+            console.error(`Error al obtener horarios:`, error);
+            // Mostrar opción para crear horarios manualmente
+            mostrarOpcionCrearHorarios(fecha);
+        });
+}

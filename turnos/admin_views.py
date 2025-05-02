@@ -919,3 +919,59 @@ def crear_horarios_predeterminados(dia):
                 hora_inicio=hora,
                 disponible=horario['disponible']
             )
+
+@user_passes_test(es_admin)
+def horarios_dia(request, fecha=None):
+    """Obtiene o actualiza los horarios para una fecha específica"""
+    if request.method == 'GET':
+        try:
+            # Si no se proporcionó fecha, intentar obtenerla de los parámetros
+            if not fecha:
+                fecha = request.GET.get('fecha')
+            
+            if not fecha:
+                return JsonResponse({'success': False, 'message': 'No se proporcionó fecha'}, status=400)
+            
+            # Convertir string a fecha
+            fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+            
+            # Obtener o crear el día
+            dia, created = DiaDisponible.objects.get_or_create(
+                fecha=fecha_obj,
+                defaults={'disponible': True}
+            )
+            
+            # Si es un nuevo día, crear horarios predeterminados
+            if created:
+                horarios_base = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', 
+                               '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', 
+                               '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00']
+                
+                for hora in horarios_base:
+                    hora_obj = datetime.strptime(hora, '%H:%M').time()
+                    HorarioDisponible.objects.create(
+                        dia=dia,
+                        hora_inicio=hora_obj,
+                        disponible=True
+                    )
+            
+            # Obtener todos los horarios para este día
+            horarios = HorarioDisponible.objects.filter(dia=dia).order_by('hora_inicio')
+            
+            # Formatear para JSON
+            horarios_json = []
+            for horario in horarios:
+                hora_str = horario.hora_inicio.strftime('%H:%M') if isinstance(horario.hora_inicio, time) else str(horario.hora_inicio)
+                
+                horarios_json.append({
+                    'id': horario.id,
+                    'hora': hora_str,
+                    'disponible': horario.disponible
+                })
+            
+            return JsonResponse({'success': True, 'horarios': horarios_json})
+            
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)

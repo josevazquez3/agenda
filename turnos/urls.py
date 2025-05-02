@@ -80,4 +80,17 @@ urlpatterns = [
     path('turnos/admin/horarios/configurar/', admin_views.configurar_horarios, name='turnos_admin_configurar_horarios'),
     path('turnos/admin/horarios/excepcion/', admin_views.agregar_excepcion, name='turnos_admin_excepcion'),
     path('turnos/admin/dias-disponibles/<int:dia_id>/', admin_views.dia_disponible_detalle, name='turnos_admin_dia_disponible_detalle'),
+
+    # Rutas para usuarios
+    path('dias_disponibles/', views.obtener_dias_disponibles, name='dias_disponibles'),
+    path('horarios/<str:fecha>/', views.obtener_horarios_dia, name='horarios_dia_usuario'),
+    path('confirmar_turno/', views.confirmar_turno, name='confirmar_turno'),
+    path('mis_turnos/', views.mis_turnos, name='mis_turnos'),
+    
+    # Rutas para administradores
+    path('admin/dias/', admin_views.dias_disponibles, name='admin_dias_disponibles'),
+    path('admin/dias/<str:fecha>/', admin_views.obtener_detalle_dia, name='admin_obtener_detalle_dia'),
+    path('admin/dias/actualizar/', admin_views.actualizar_dia, name='admin_actualizar_dia'),
+    path('admin/horarios-dia/<str:fecha>/', admin_views.horarios_dia, name='admin_horarios_dia'),
+    path('admin/dias/horarios/guardar/', admin_views.horarios_guardar, name='admin_horarios_guardar'),
 ]

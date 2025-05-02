@@ -463,3 +463,235 @@ def historial_paciente_nodisponible(request, paciente_id):
         'paciente': paciente,
         'mensaje': 'La exportación a PDF requiere la instalación de WeasyPrint en el servidor.'
     })
+
+def obtener_horarios_dia(request, fecha):
+    """API para obtener los horarios disponibles para una fecha"""
+    try:
+        # Convertir fecha a objeto date
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+        
+        # Buscar el día
+        dia = DiasDisponibles.objects.filter(fecha=fecha_obj, disponible=True).first()
+        if not dia:
+            return JsonResponse({
+                'success': False,
+                'message': 'Fecha no disponible'
+            }, status=404)
+        
+        # Obtener horarios disponibles
+        horarios = HorarioDisponible.objects.filter(
+            dia=dia,
+            disponible=True
+        ).order_by('hora_inicio')
+        
+        # Excluir horarios que ya están reservados
+        horarios_reservados = Turno.objects.filter(
+            dia=dia,
+            estado__in=['pendiente', 'confirmado']
+        ).values_list('horario__id', flat=True)
+        
+        horarios = horarios.exclude(id__in=horarios_reservados)
+        
+        # Formatear para JSON
+        horarios_json = []
+        for horario in horarios:
+            hora_str = horario.hora_inicio.strftime('%H:%M') if isinstance(horario.hora_inicio, time) else str(horario.hora_inicio)
+            
+            horarios_json.append({
+                'id': horario.id,
+                'hora': hora_str
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'horarios': horarios_json
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+    
+@login_required
+def confirmar_turno(request):
+    """Confirma un turno seleccionado por el usuario"""
+    if request.method == 'POST':
+        horario_id = request.POST.get('horario_id')
+        
+        try:
+            # Obtener el horario seleccionado
+            horario = HorarioDisponible.objects.get(id=horario_id, disponible=True)
+            
+            # Verificar que no esté ya reservado
+            turno_existente = Turno.objects.filter(
+                horario=horario,
+                estado__in=['pendiente', 'confirmado']
+            ).exists()
+            
+            if turno_existente:
+                messages.error(request, 'Este horario ya ha sido reservado. Por favor, seleccione otro.')
+                return redirect('solicitar_turno')
+            
+            # Crear el turno
+            turno = Turno.objects.create(
+                paciente=request.user,
+                dia=horario.dia,
+                horario=horario,
+                estado='confirmado'
+            )
+            
+            # Marcar el horario como no disponible
+            horario.disponible = False
+            horario.save()
+            
+            # Redireccionar a la página de confirmación
+            return redirect('turno_confirmado', turno_id=turno.id)
+            
+        except HorarioDisponible.DoesNotExist:
+            messages.error(request, 'El horario seleccionado no está disponible o no existe.')
+            return redirect('solicitar_turno')
+        except Exception as e:
+            messages.error(request, f'Error al confirmar el turno: {str(e)}')
+            return redirect('solicitar_turno')
+    
+    # Si el método no es POST, redirigir a la página de solicitud
+    return redirect('solicitar_turno')
+
+def obtener_dias_disponibles(request):
+    """API para obtener los días disponibles para el calendario"""
+    try:
+        # Obtener solo días marcados como disponibles y con fecha mayor o igual a hoy
+        hoy = timezone.now().date()
+        dias = DiasDisponibles.objects.filter(
+            disponible=True,
+            fecha__gte=hoy
+        ).order_by('fecha')
+        
+        # Convertir a formato compatible con el calendario
+        dias_disponibles = [dia.fecha.strftime('%Y-%m-%d') for dia in dias]
+        
+        return JsonResponse({
+            'success': True,
+            'dias_disponibles': dias_disponibles
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+
+def obtener_horarios_dia(request, fecha):
+    """API para obtener los horarios disponibles para una fecha"""
+    try:
+        # Convertir fecha a objeto date
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+        
+        # Buscar el día
+        dia = DiasDisponibles.objects.filter(fecha=fecha_obj, disponible=True).first()
+        if not dia:
+            return JsonResponse({
+                'success': False,
+                'message': 'Fecha no disponible'
+            }, status=404)
+        
+        # Obtener horarios disponibles
+        horarios = HorarioDisponible.objects.filter(
+            dia=dia,
+            disponible=True
+        ).order_by('hora_inicio')
+        
+        # Excluir horarios que ya están reservados
+        horarios_reservados = Turno.objects.filter(
+            dia=dia,
+            estado__in=['pendiente', 'confirmado']
+        ).values_list('horario__id', flat=True)
+        
+        horarios = horarios.exclude(id__in=horarios_reservados)
+        
+        # Formatear para JSON
+        horarios_json = []
+        for horario in horarios:
+            hora_str = horario.hora_inicio.strftime('%H:%M') if isinstance(horario.hora_inicio, time) else str(horario.hora_inicio)
+            
+            horarios_json.append({
+                'id': horario.id,
+                'hora': hora_str
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'horarios': horarios_json
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+
+@login_required
+def confirmar_turno(request):
+    """Confirma un turno seleccionado por el usuario"""
+    if request.method == 'POST':
+        horario_id = request.POST.get('horario_id')
+        
+        try:
+            # Obtener el horario seleccionado
+            horario = HorarioDisponible.objects.get(id=horario_id, disponible=True)
+            
+            # Verificar que no esté ya reservado
+            turno_existente = Turno.objects.filter(
+                horario=horario,
+                estado__in=['pendiente', 'confirmado']
+            ).exists()
+            
+            if turno_existente:
+                messages.error(request, 'Este horario ya ha sido reservado. Por favor, seleccione otro.')
+                return redirect('solicitar_turno')
+            
+            # Crear el turno
+            turno = Turno.objects.create(
+                paciente=request.user,
+                dia=horario.dia,
+                horario=horario,
+                estado='confirmado'
+            )
+            
+            # Marcar el horario como no disponible
+            horario.disponible = False
+            horario.save()
+            
+            # Redireccionar a la página de confirmación
+            return redirect('turno_confirmado', turno_id=turno.id)
+            
+        except HorarioDisponible.DoesNotExist:
+            messages.error(request, 'El horario seleccionado no está disponible o no existe.')
+            return redirect('solicitar_turno')
+        except Exception as e:
+            messages.error(request, f'Error al confirmar el turno: {str(e)}')
+            return redirect('solicitar_turno')
+    
+    # Si el método no es POST, redirigir a la página de solicitud
+    return redirect('solicitar_turno')
+
+@login_required
+def solicitar_turno(request):
+    """Vista para la página de solicitud de turnos"""
+    return render(request, 'turnos/solicitar_turno.html')
+
+@login_required
+def turno_confirmado(request, turno_id):
+    """Vista para la página de confirmación de turno"""
+    try:
+        turno = Turno.objects.get(id=turno_id, paciente=request.user)
+        return render(request, 'turnos/turno_confirmado.html', {'turno': turno})
+    except Turno.DoesNotExist:
+        messages.error(request, 'El turno no existe o no tienes permiso para verlo.')
+        return redirect('mis_turnos')
+
+@login_required
+def mis_turnos(request):
+    """Vista para ver los turnos del usuario"""
+    turnos = Turno.objects.filter(paciente=request.user).order_by('dia__fecha', 'horario__hora_inicio')
+    return render(request, 'turnos/mis_turnos.html', {'turnos': turnos})
